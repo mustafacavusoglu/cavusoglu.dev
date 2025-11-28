@@ -50,11 +50,11 @@ export default function HomePage() {
           <div className="container px-4 py-8 md:px-8 lg:px-12">
             {/* Hero Section - Updated with name */}
             <section className="mb-12">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border p-8 md:p-12">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/8 via-accent/5 to-transparent border border-border/50 p-8 md:p-12 shadow-sm">
                 <div className="relative z-10">
-                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-2">Mustafa Çavuşoğlu</h1>
-                  <p className="text-xl md:text-2xl text-primary font-medium mb-4">ML / MLOps Engineer</p>
-                  <p className="text-lg text-muted-foreground max-w-2xl mb-6 text-pretty">
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-2 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text">Mustafa Çavuşoğlu</h1>
+                  <p className="text-xl md:text-2xl text-primary font-semibold mb-4">ML / MLOps Engineer</p>
+                  <p className="text-lg text-muted-foreground max-w-2xl mb-6 leading-relaxed">
                     Building scalable machine learning systems and infrastructure. Passionate about automation,
                     containerization, and making ML models production-ready.
                   </p>
@@ -73,17 +73,17 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-                <div className="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-                <div className="absolute -bottom-12 -left-12 h-48 w-48 rounded-full bg-primary/5 blur-2xl" />
+                <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-gradient-to-br from-primary/15 to-accent/10 blur-3xl opacity-60" />
+                <div className="absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-gradient-to-tr from-accent/15 to-primary/10 blur-3xl opacity-50" />
               </div>
             </section>
 
             {/* Summary Cards Grid */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-12">
               {/* About Summary */}
-              <Card className="group hover:border-primary/50 transition-colors">
+              <Card className="group hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
                 <CardHeader className="flex flex-row items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                  <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-2.5 text-primary">
                     <User className="h-5 w-5" />
                   </div>
                   <div>
@@ -103,9 +103,9 @@ export default function HomePage() {
               </Card>
 
               {/* Experiences Summary */}
-              <Card className="group hover:border-primary/50 transition-colors">
+              <Card className="group hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
                 <CardHeader className="flex flex-row items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                  <div className="rounded-xl bg-gradient-to-br from-accent/15 to-accent/5 p-2.5 text-accent">
                     <Briefcase className="h-5 w-5" />
                   </div>
                   <div>
@@ -134,9 +134,9 @@ export default function HomePage() {
               </Card>
 
               {/* Projects Summary */}
-              <Card className="group hover:border-primary/50 transition-colors">
+              <Card className="group hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
                 <CardHeader className="flex flex-row items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                  <div className="rounded-xl bg-gradient-to-br from-primary/15 to-accent/10 p-2.5 text-primary">
                     <FolderKanban className="h-5 w-5" />
                   </div>
                   <div>
@@ -174,9 +174,9 @@ export default function HomePage() {
                   <a
                     key={category.slug}
                     href={`/category/${category.slug}`}
-                    className="group flex flex-col items-center gap-3 rounded-xl border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-md hover:shadow-primary/5"
+                    className="group flex flex-col items-center gap-3 rounded-2xl border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
                   >
-                    <div className="rounded-lg bg-primary/10 p-3 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <div className="rounded-xl bg-gradient-to-br from-primary/15 to-accent/10 p-3 text-primary transition-all group-hover:scale-110 group-hover:from-primary group-hover:to-accent group-hover:text-primary-foreground group-hover:shadow-lg">
                       {categoryIcons[category.name]}
                     </div>
                     <div className="text-center">
