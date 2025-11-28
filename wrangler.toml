@@ -1,0 +1,7 @@
+name = "cavusoglu-dev"
+compatibility_date = "2025-11-28"
+pages_build_output_dir = "out"
+
+[observability]
+enabled = true
+
