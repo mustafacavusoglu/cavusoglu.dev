@@ -9,8 +9,11 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "DevRef - Technical Command Reference",
-  description: "Personal technical documentation for Linux, Docker, Git, Kubernetes, and more",
+  title: "Mustafa Cavusoglu - Software Architect",
+  description: "Personal technical documentation and portfolio for Linux, Docker, Git, Kubernetes, and more",
+  icons: {
+    icon: '/icon.svg',
+  },
 }
 
 export default function RootLayout({

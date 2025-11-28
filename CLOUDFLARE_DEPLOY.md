@@ -55,14 +55,15 @@ npm run pages:deploy
 
 6. "Save and Deploy" butonuna bas
 
-### Deploy Command Hatası Alıyorsanız:
+### Deploy Command (Eğer Required İse):
 
-Eğer Cloudflare "Deploy command" alanı varsa:
-- **BOŞ BIRAKIN** 
-- veya `echo "Deploy completed"` yazın
+Eğer Cloudflare "Deploy command" alanını zorunlu tutuyorsa şunu yazın:
 
-Cloudflare Pages otomatik olarak build sonrası `out` klasörünü deploy eder.
-`npx wrangler deploy` KULLANMAYIN - bu Workers için!
+```bash
+npx wrangler pages deploy out --project-name=cavusoglu-dev
+```
+
+NOT: Proje adını (`cavusoglu-dev`) kendi Cloudflare Pages proje adınızla değiştirin!
 
 ## Environment Variables
 
