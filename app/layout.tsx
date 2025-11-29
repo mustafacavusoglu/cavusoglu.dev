@@ -12,7 +12,14 @@ export const metadata: Metadata = {
   title: "Mustafa Cavusoglu - Software Architect",
   description: "Personal technical documentation and portfolio for Linux, Docker, Git, Kubernetes, and more",
   icons: {
-    icon: '/icon.svg',
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: [
+      { url: '/apple-icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.ico',
   },
 }
 
