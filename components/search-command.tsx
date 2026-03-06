@@ -12,33 +12,53 @@ import {
 } from "@/components/ui/command"
 import { Command as CommandPrimitive } from "cmdk"
 import { Button } from "@/components/ui/button"
-import { allContent, type ContentItem } from "@/lib/content"
+import { searchIndex, type SearchIndexItem } from "@/lib/content"
 import { cn } from "@/lib/utils"
 
-function getRelevanceScore(item: ContentItem, query: string): number {
-  const q = query.toLowerCase()
+function getRelevanceScore(item: SearchIndexItem, query: string): number {
+  const q = query.toLowerCase().trim()
+  if (!q) return 0
+
+  const words = q.split(/\s+/).filter((w) => w.length > 1)
   let score = 0
 
-  // Title match (highest weight)
-  if (item.title.toLowerCase().includes(q)) score += 100
-  if (item.title.toLowerCase().startsWith(q)) score += 50
+  if (item.titleLower.includes(q)) score += 100
+  if (item.titleLower.startsWith(q)) score += 50
+  if (item.categoryLower.includes(q)) score += 40
+  if (item.descriptionLower.includes(q)) score += 30
 
-  // Category match
-  if (item.category.toLowerCase().includes(q)) score += 30
-
-  // Description match
-  if (item.description.toLowerCase().includes(q)) score += 20
-
-  // Content match
-  if (item.content.toLowerCase().includes(q)) {
-    const matches = item.content.toLowerCase().split(q).length - 1
-    score += Math.min(matches * 5, 25)
+  for (const tag of item.tagsLower) {
+    if (tag === q) {
+      score += 25
+      break
+    }
+    if (tag.includes(q)) {
+      score += 15
+      break
+    }
   }
 
-  // Tags match
-  item.tags.forEach((tag) => {
-    if (tag.toLowerCase().includes(q)) score += 15
-  })
+  let cmdMatch = false
+  for (const cmd of item.commands) {
+    if (cmd.includes(q)) {
+      score += 60
+      cmdMatch = true
+      break
+    }
+  }
+
+  if (item.headings.some((h) => h.includes(q))) score += 40
+  if (item.contentLower.includes(q)) score += 15
+
+  for (const w of words) {
+    if (item.titleLower.includes(w)) score += 20
+    if (item.descriptionLower.includes(w)) score += 10
+    if (item.categoryLower.includes(w)) score += 8
+    if (item.headings.some((h) => h.includes(w))) score += 12
+    if (!cmdMatch && item.commands.some((cmd) => cmd.includes(w))) score += 15
+    if (item.tagsLower.some((tag) => tag.includes(w))) score += 8
+    if (item.contentLower.includes(w)) score += 3
+  }
 
   return score
 }
@@ -61,9 +81,9 @@ export function SearchCommand() {
   }, [])
 
   const filteredContent = React.useMemo(() => {
-    if (!query) return allContent.slice(0, 10)
+    if (!query) return searchIndex.slice(0, 10)
 
-    return allContent
+    return searchIndex
       .map((item) => ({ ...item, score: getRelevanceScore(item, query) }))
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score)
@@ -96,7 +116,7 @@ export function SearchCommand() {
           <span className="text-xs">⌘</span>K
         </kbd>
       </Button>
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
         <div className="flex items-center border-b border-border/50 px-3 w-full">
           <Search className="mr-2 h-4 w-4 shrink-0 text-primary" />
           <CommandPrimitive.Input

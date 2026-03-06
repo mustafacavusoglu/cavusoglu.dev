@@ -13,6 +13,7 @@ import {
   Package,
   Boxes,
   Workflow,
+  Globe,
   ChevronDown,
   BookOpen,
   Briefcase,
@@ -28,6 +29,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   uv: <Package className="h-4 w-4" />,
   Miniconda: <Boxes className="h-4 w-4" />,
   Kubernetes: <Workflow className="h-4 w-4" />,
+  Network: <Globe className="h-4 w-4" />,
 }
 
 export function Sidebar() {
