@@ -2218,6 +2218,739 @@ spec:
 `,
   },
 
+  // Kubernetes Services & Routes
+  {
+    slug: "k8s-services-routes",
+    title: "Services & Routes",
+    description: "Kubernetes Service types, OpenShift Routes, Ingress and traffic routing in detail",
+    category: "Kubernetes",
+    tags: ["service", "clusterip", "nodeport", "loadbalancer", "headless", "route", "ingress", "openshift", "networking"],
+    content: `# Services & Routes
+
+Kubernetes networking: Service types, Ingress and OpenShift Routes.
+
+## Service Types Overview
+
+| Type | Scope | Use Case |
+|------|-------|----------|
+| ClusterIP | Cluster-internal only | Service-to-service communication |
+| NodePort | External via node IP:port | Dev/test, bare-metal |
+| LoadBalancer | External via cloud LB | Production cloud workloads |
+| Headless | No cluster IP, direct pod DNS | StatefulSet, service discovery |
+| ExternalName | DNS alias to external service | External service integration |
+
+## ClusterIP (Default)
+
+Cluster-internal access only. Other services reach it via \`<service>.<namespace>.svc.cluster.local\`.
+
+\`\`\`yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-api
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+\`\`\`
+
+\`\`\`bash
+# Cluster-internal DNS
+curl http://backend-api.default.svc.cluster.local
+curl http://backend-api.default:80
+curl http://backend-api:80
+\`\`\`
+
+## NodePort
+
+Opens a static port (30000-32767) on every node. Traffic: \`NodeIP:NodePort → Service → Pod\`.
+
+\`\`\`yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-nodeport
+spec:
+  type: NodePort
+  selector:
+    app: my-app
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30080
+\`\`\`
+
+\`\`\`bash
+curl http://<NODE_IP>:30080
+\`\`\`
+
+## LoadBalancer
+
+Provisions a cloud provider load balancer (AWS ELB, GCP LB, Azure LB).
+
+\`\`\`yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-lb
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+spec:
+  type: LoadBalancer
+  selector:
+    app: my-app
+  ports:
+    - port: 443
+      targetPort: 8080
+      protocol: TCP
+\`\`\`
+
+## Headless Service
+
+No ClusterIP assigned. DNS returns individual pod IPs. Essential for StatefulSets.
+
+\`\`\`yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+\`\`\`
+
+\`\`\`bash
+# Direct pod DNS (StatefulSet)
+nslookup postgres-0.postgres.default.svc.cluster.local
+nslookup postgres-1.postgres.default.svc.cluster.local
+\`\`\`
+
+## ExternalName
+
+Maps a service to an external DNS name. No proxy, just a CNAME record.
+
+\`\`\`yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-db
+spec:
+  type: ExternalName
+  externalName: mydb.example.com
+\`\`\`
+
+## Ingress
+
+Layer 7 (HTTP/HTTPS) routing. Requires an Ingress Controller (nginx, traefik, etc.).
+
+\`\`\`yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.example.com
+        - app.example.com
+      secretName: tls-secret
+  rules:
+    - host: api.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-api
+                port:
+                  number: 80
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+\`\`\`
+
+## OpenShift Route
+
+OpenShift-native alternative to Ingress. Managed by the built-in HAProxy router.
+
+\`\`\`yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: my-app
+spec:
+  host: my-app.apps.cluster.example.com
+  to:
+    kind: Service
+    name: my-app-svc
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+\`\`\`
+
+### Route TLS Termination Types
+
+| Type | TLS at Router | TLS to Pod | Use Case |
+|------|--------------|------------|----------|
+| edge | Yes | No (HTTP) | Most common, router handles TLS |
+| passthrough | No (pass-through) | Yes | App handles its own TLS |
+| reencrypt | Yes | Yes (re-encrypted) | End-to-end TLS with router cert |
+
+\`\`\`yaml
+# Passthrough
+spec:
+  tls:
+    termination: passthrough
+
+# Re-encrypt
+spec:
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |
+      -----BEGIN CERTIFICATE-----
+      ...
+      -----END CERTIFICATE-----
+\`\`\`
+
+### Route vs Ingress
+
+| Feature | Route | Ingress |
+|---------|-------|---------|
+| Platform | OpenShift only | Any K8s |
+| TLS | edge/passthrough/reencrypt | TLS secret based |
+| Built-in | Yes (HAProxy) | Needs Ingress Controller |
+| Weighted routing | Native | Depends on controller |
+
+## Debugging Services
+
+\`\`\`bash
+kubectl get svc -o wide
+kubectl get endpoints my-service
+kubectl describe svc my-service
+
+# DNS test
+kubectl run debug --image=busybox --rm -it -- nslookup my-service
+kubectl run debug --image=curlimages/curl --rm -it -- curl http://my-service:80
+
+# Check kube-proxy rules
+kubectl get pods -n kube-system -l k8s-app=kube-proxy
+iptables -t nat -L -n | grep my-service
+\`\`\`
+`,
+  },
+
+  // Kubernetes Serverless
+  {
+    slug: "k8s-serverless",
+    title: "Kubernetes Serverless",
+    description: "Serverless workloads on Kubernetes: Knative Serving, Eventing, and OpenShift Serverless",
+    category: "Kubernetes",
+    tags: ["serverless", "knative", "serving", "eventing", "scale-to-zero", "openshift", "faas"],
+    content: `# Kubernetes Serverless
+
+Serverless workloads on Kubernetes with Knative and OpenShift Serverless.
+
+## What is Knative?
+
+Knative extends Kubernetes to run serverless workloads:
+- **Serving**: Request-driven auto-scaling (including scale-to-zero)
+- **Eventing**: Event-driven architecture with sources and brokers
+
+## Knative Serving
+
+### Basic Knative Service
+
+\`\`\`yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ml-inference
+  namespace: ml-serving
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+        autoscaling.knative.dev/target: "100"
+    spec:
+      containers:
+        - image: my-registry/ml-model:v1
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          env:
+            - name: MODEL_PATH
+              value: "/models/v1"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+\`\`\`
+
+### Auto-Scaling Configuration
+
+\`\`\`yaml
+metadata:
+  annotations:
+    # Scale to zero when no traffic
+    autoscaling.knative.dev/minScale: "0"
+    # Maximum replicas
+    autoscaling.knative.dev/maxScale: "20"
+    # Concurrent requests per pod
+    autoscaling.knative.dev/target: "50"
+    # Metric type: concurrency or rps
+    autoscaling.knative.dev/metric: "concurrency"
+    # Scale down delay (seconds)
+    autoscaling.knative.dev/scale-down-delay: "30s"
+    # Scale to zero grace period
+    autoscaling.knative.dev/scale-to-zero-grace-period: "60s"
+\`\`\`
+
+### Traffic Splitting (Canary / Blue-Green)
+
+\`\`\`yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ml-inference
+spec:
+  template:
+    metadata:
+      name: ml-inference-v2
+    spec:
+      containers:
+        - image: my-registry/ml-model:v2
+  traffic:
+    - revisionName: ml-inference-v1
+      percent: 80
+    - revisionName: ml-inference-v2
+      percent: 20
+\`\`\`
+
+\`\`\`bash
+# Canary → Full rollout
+kn service update ml-inference --traffic ml-inference-v2=100
+
+# Rollback
+kn service update ml-inference --traffic ml-inference-v1=100
+\`\`\`
+
+### kn CLI
+
+\`\`\`bash
+# Create service
+kn service create my-app --image my-registry/app:v1 --port 8080
+
+# List services
+kn service list
+
+# Update service
+kn service update my-app --image my-registry/app:v2
+
+# Describe service
+kn service describe my-app
+
+# Delete service
+kn service delete my-app
+
+# List revisions
+kn revision list
+
+# Get service URL
+kn service describe my-app -o url
+\`\`\`
+
+## Knative Eventing
+
+### Event Source → Service
+
+\`\`\`yaml
+apiVersion: sources.knative.dev/v1
+kind: ApiServerSource
+metadata:
+  name: pod-events
+spec:
+  serviceAccountName: event-watcher
+  mode: Resource
+  resources:
+    - apiVersion: v1
+      kind: Pod
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: event-processor
+\`\`\`
+
+### Broker & Trigger Pattern
+
+\`\`\`yaml
+apiVersion: eventing.knative.dev/v1
+kind: Broker
+metadata:
+  name: default
+  namespace: ml-events
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: ml-training-trigger
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: ml.data.updated
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: training-pipeline
+\`\`\`
+
+## Serverless vs Deployment
+
+| Feature | Deployment | Knative Serverless |
+|---------|-----------|-------------------|
+| Minimum pods | 1+ always running | 0 (scale-to-zero) |
+| Scaling | HPA (manual config) | Automatic (request-based) |
+| Cost | Always paying | Pay per request |
+| Cold start | None | Possible (scale from 0) |
+| Traffic split | Manual (multiple deployments) | Built-in |
+| Use case | Steady traffic | Bursty/intermittent traffic |
+
+## When to Use Serverless
+
+- **ML inference APIs** with variable/bursty traffic
+- **Data preprocessing** triggered by events
+- **Webhook handlers** and event processors
+- **Dev/staging** environments (cost savings with scale-to-zero)
+- **Batch scoring** triggered on demand
+`,
+  },
+
+  // Istio Service Mesh
+  {
+    slug: "k8s-istio",
+    title: "Istio Service Mesh",
+    description: "Istio service mesh: traffic management, observability, security and sidecar architecture",
+    category: "Kubernetes",
+    tags: ["istio", "service-mesh", "envoy", "sidecar", "virtualservice", "destinationrule", "gateway", "mtls", "traffic-management"],
+    content: `# Istio Service Mesh
+
+Service mesh for microservices: traffic management, security, and observability.
+
+## What is Istio?
+
+Istio adds a sidecar proxy (Envoy) to each pod, providing:
+- **Traffic Management**: Routing, load balancing, retries, circuit breaking
+- **Security**: mTLS, authorization policies
+- **Observability**: Metrics, tracing, logging (without code changes)
+
+## Architecture
+
+- **Control Plane (istiod)**: Pilot (routing config), Citadel (certs & mTLS), Galley (config validation)
+- **Data Plane**: Envoy sidecar proxy injected into each Pod
+- **Traffic Flow**: Client → Envoy (Pod A) → Envoy (Pod B) → App Container
+
+istiod pushes routing rules and certificates to all Envoy sidecars via xDS API. Envoy intercepts all inbound/outbound traffic transparently.
+
+## Installation
+
+\`\`\`bash
+# Install istioctl
+curl -L https://istio.io/downloadIstio | sh -
+export PATH=$PWD/istio-*/bin:$PATH
+
+# Install Istio (demo profile)
+istioctl install --set profile=demo -y
+
+# Enable sidecar injection for namespace
+kubectl label namespace default istio-injection=enabled
+
+# Verify
+istioctl verify-install
+kubectl get pods -n istio-system
+\`\`\`
+
+## Sidecar Injection
+
+\`\`\`bash
+# Automatic (namespace label)
+kubectl label namespace my-ns istio-injection=enabled
+
+# Manual injection
+istioctl kube-inject -f deployment.yaml | kubectl apply -f -
+
+# Check sidecar
+kubectl get pods -o jsonpath='{.items[*].spec.containers[*].name}'
+\`\`\`
+
+## Gateway
+
+Entry point for external traffic into the mesh.
+
+\`\`\`yaml
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: app-gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "api.example.com"
+        - "app.example.com"
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: tls-secret
+      hosts:
+        - "api.example.com"
+\`\`\`
+
+## VirtualService
+
+Defines traffic routing rules.
+
+\`\`\`yaml
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: backend-routing
+spec:
+  hosts:
+    - "api.example.com"
+  gateways:
+    - app-gateway
+  http:
+    # Canary: route 90/10
+    - match:
+        - uri:
+            prefix: /api/v2
+      route:
+        - destination:
+            host: backend
+            subset: v2
+          weight: 10
+        - destination:
+            host: backend
+            subset: v1
+          weight: 90
+
+    # Header-based routing (test traffic)
+    - match:
+        - headers:
+            x-env:
+              exact: canary
+      route:
+        - destination:
+            host: backend
+            subset: v2
+
+    # Default route
+    - route:
+        - destination:
+            host: backend
+            subset: v1
+\`\`\`
+
+## DestinationRule
+
+Defines subsets and traffic policies.
+
+\`\`\`yaml
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: backend
+spec:
+  host: backend
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        h2UpgradePolicy: DEFAULT
+        http1MaxPendingRequests: 100
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 60s
+  subsets:
+    - name: v1
+      labels:
+        version: v1
+    - name: v2
+      labels:
+        version: v2
+\`\`\`
+
+## Retry & Timeout
+
+\`\`\`yaml
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: backend
+spec:
+  hosts:
+    - backend
+  http:
+    - route:
+        - destination:
+            host: backend
+      timeout: 10s
+      retries:
+        attempts: 3
+        perTryTimeout: 3s
+        retryOn: 5xx,reset,connect-failure
+\`\`\`
+
+## Circuit Breaker
+
+\`\`\`yaml
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: backend
+spec:
+  host: backend
+  trafficPolicy:
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+    connectionPool:
+      tcp:
+        maxConnections: 50
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+\`\`\`
+
+## mTLS (Mutual TLS)
+
+\`\`\`yaml
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+\`\`\`
+
+## Authorization Policy
+
+\`\`\`yaml
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: backend-policy
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/default/sa/frontend"]
+      to:
+        - operation:
+            methods: ["GET", "POST"]
+            paths: ["/api/*"]
+\`\`\`
+
+## Observability
+
+\`\`\`bash
+# Kiali (service mesh dashboard)
+istioctl dashboard kiali
+
+# Jaeger (distributed tracing)
+istioctl dashboard jaeger
+
+# Grafana (metrics)
+istioctl dashboard grafana
+
+# Prometheus
+istioctl dashboard prometheus
+
+# Envoy proxy config
+istioctl proxy-config routes <pod-name>
+istioctl proxy-config clusters <pod-name>
+istioctl proxy-config listeners <pod-name>
+\`\`\`
+
+## Debugging
+
+\`\`\`bash
+# Analyze mesh config
+istioctl analyze
+
+# Check proxy status
+istioctl proxy-status
+
+# Debug specific pod
+istioctl proxy-config all <pod-name> -o json
+
+# Check mTLS status
+istioctl authn tls-check <pod-name>
+
+# Envoy access logs
+kubectl logs <pod-name> -c istio-proxy
+\`\`\`
+`,
+  },
+
   // Network Fundamentals
   {
     slug: "network-fundamentals",

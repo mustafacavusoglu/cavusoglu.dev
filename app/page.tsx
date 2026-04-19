@@ -31,13 +31,14 @@ const categoryIcons: Record<string, React.ReactNode> = {
 }
 
 const experiences = [
-  { title: "ML Engineer", company: "Company Name", period: "2022 - Present" },
-  { title: "Data Scientist", company: "Previous Company", period: "2020 - 2022" },
+  { title: "MLOps Engineer", company: "Intertech", period: "Nov 2025 - Present" },
+  { title: "Data Scientist", company: "Teknosa", period: "Sept 2023 - Oct 2025" },
+  { title: "AI Engineer", company: "MLP Care", period: "Sept 2022 - Sept 2023" },
 ]
 
 const projects = [
-  { name: "ML Pipeline Framework", description: "End-to-end ML pipeline with Kubernetes" },
-  { name: "Model Monitoring System", description: "Real-time model performance tracking" },
+  { name: "RAG-Langchain", description: "RAG Chat application using Langchain, OpenAI and Streamlit" },
+  { name: "fast-api-yolov5-deploy-on-aws", description: "YOLOv5 model deployment on AWS using FastAPI" },
 ]
 
 export default function HomePage() {

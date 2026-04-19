@@ -45,7 +45,7 @@ export default async function CategoryPage({ params }: PageProps) {
               <p className="text-muted-foreground">{content.length} guides available</p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1">
               {content.map((item) => (
                 <CommandCard key={item.slug} item={item} />
               ))}
