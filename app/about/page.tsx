@@ -73,19 +73,19 @@ export default function AboutPage() {
                     </div>
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <Mail className="h-4 w-4" />
-                      <a href="mailto:contact@example.com" className="hover:text-primary">
-                        contact@example.com
+                      <a href="mailto:mustafacavussoglu@gmail.com" className="hover:text-primary">
+                        mustafacavussoglu@gmail.com
                       </a>
                     </div>
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <Linkedin className="h-4 w-4" />
-                      <a href="#" className="hover:text-primary">
+                      <a href="https://www.linkedin.com/in/mustafacavusoglu/" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
                         LinkedIn Profile
                       </a>
                     </div>
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <Github className="h-4 w-4" />
-                      <a href="#" className="hover:text-primary">
+                      <a href="https://github.com/mustafacavusoglu" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
                         GitHub Profile
                       </a>
                     </div>
