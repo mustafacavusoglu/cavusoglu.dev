@@ -20,6 +20,8 @@ import {
   ArrowRight,
 } from "lucide-react"
 import Link from "next/link"
+import { readFileSync } from "fs"
+import { join } from "path"
 
 const categoryIcons: Record<string, React.ReactNode> = {
   Linux: <TerminalSquare className="h-5 w-5" />,
@@ -28,6 +30,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   uv: <Package className="h-5 w-5" />,
   Miniconda: <Boxes className="h-5 w-5" />,
   Kubernetes: <Workflow className="h-5 w-5" />,
+  OpenShift: <Container className="h-5 w-5" />,
 }
 
 const experiences = [
@@ -36,12 +39,14 @@ const experiences = [
   { title: "AI Engineer", company: "MLP Care", period: "Sept 2022 - Sept 2023" },
 ]
 
-const projects = [
-  { name: "RAG-Langchain", description: "RAG Chat application using Langchain, OpenAI and Streamlit" },
-  { name: "fast-api-yolov5-deploy-on-aws", description: "YOLOv5 model deployment on AWS using FastAPI" },
-]
+async function getProjects() {
+  const filePath = join(process.cwd(), 'public', 'projects.json')
+  const fileContent = readFileSync(filePath, 'utf-8')
+  return JSON.parse(fileContent)
+}
 
-export default function HomePage() {
+export default async function HomePage() {
+  const projects = await getProjects()
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -116,7 +121,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 mb-4">
-                    {experiences.map((exp, i) => (
+                    {experiences.slice(-1).map((exp, i) => (
                       <div key={i} className="text-sm">
                         <p className="font-medium">{exp.title}</p>
                         <p className="text-muted-foreground text-xs">
@@ -147,7 +152,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 mb-4">
-                    {projects.map((project, i) => (
+                    {projects.slice(0, 2).map((project, i) => (
                       <div key={i} className="text-sm">
                         <p className="font-medium">{project.name}</p>
                         <p className="text-muted-foreground text-xs">{project.description}</p>
@@ -170,7 +175,7 @@ export default function HomePage() {
                 <h2 className="text-2xl font-semibold">Knowledge Center</h2>
                 <Badge variant="secondary">{allContent.length} guides</Badge>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {categories.map((category) => (
                   <a
                     key={category.slug}

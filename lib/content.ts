@@ -3216,6 +3216,458 @@ iperf3 -c hostname
 \`\`\`
 `,
   },
+
+  // OpenShift Commands
+  {
+    slug: "openshift-basics",
+    title: "OpenShift Basics",
+    description: "Essential OpenShift CLI commands for cluster and project management",
+    category: "OpenShift",
+    tags: ["oc", "projects", "login", "cluster", "basic"],
+    content: `# OpenShift Basics
+
+Essential OpenShift CLI commands for everyday operations.
+
+## Login and Connection
+
+\`\`\`bash
+# Login to OpenShift cluster
+oc login https://api.cluster.example.com:6443
+
+# Login with token
+oc login --token=sha256~xxx --server=https://api.cluster.example.com:6443
+
+# Login with username and password
+oc login -u developer -p developer
+
+# Check current user
+oc whoami
+
+# Show current login details
+oc whoami --show-server
+oc whoami --show-token
+
+# Logout
+oc logout
+\`\`\`
+
+## Project Management
+
+\`\`\`bash
+# List projects
+oc get projects
+
+# Create a new project
+oc new-project my-project
+
+# Switch to a project
+oc project my-project
+
+# Show current project
+oc project
+
+# Delete a project
+oc delete project my-project
+
+# Describe a project
+oc describe project my-project
+\`\`\`
+
+## Basic Operations
+
+\`\`\`bash
+# Get resources
+oc get all
+oc get pods
+oc get deployments
+oc get services
+oc get routes
+
+# Get with details
+oc get pods -o wide
+oc get pods -o yaml
+
+# Describe a resource
+oc describe pod my-pod
+oc describe deployment my-deployment
+
+# View logs
+oc logs my-pod
+oc logs my-pod -f
+oc logs my-pod -c container-name
+
+# Execute command in pod
+oc exec my-pod -- command
+oc exec -it my-pod -- bash
+
+# Port forward
+oc port-forward my-pod 8080:80
+\`\`\`
+
+## Help and Info
+
+\`\`\`bash
+# General help
+oc --help
+
+# Command specific help
+oc get --help
+oc create --help
+
+# Show cluster info
+oc cluster-info
+
+# Show API resources
+oc api-resources
+oc api-resources --api-group=apps
+\`\`\`
+`,
+  },
+  {
+    slug: "openshift-deployments",
+    title: "OpenShift Deployments",
+    description: "Deploying and managing applications on OpenShift",
+    category: "OpenShift",
+    tags: ["deploy", "new-app", "build", "imagestream", " rollout"],
+    content: `# OpenShift Deployments
+
+Deploying and managing applications on OpenShift.
+
+## Deploying Applications
+
+\`\`\`bash
+# Deploy from source code (Git)
+oc new-app https://github.com/user/repo.git
+
+# Deploy from source with a specific branch
+oc new-app https://github.com/user/repo.git#main
+
+# Deploy from source with builder image
+oc new-app python:3.11~https://github.com/user/repo.git
+
+# Deploy from container image
+oc new-app nginx:latest
+
+# Deploy from Dockerfile
+oc new-app https://github.com/user/repo.git --strategy=docker
+
+# Deploy with environment variables
+oc new-app https://github.com/user/repo.git -e KEY=VALUE -e DB_HOST=db.example.com
+
+# Deploy with a name
+oc new-app nginx:latest --name=my-nginx
+
+# Create a route after deployment
+oc expose svc/my-nginx
+\`\`\`
+
+## Build Management
+
+\`\`\`bash
+# List builds
+oc get builds
+
+# Start a build
+oc start-build my-app
+
+# Start build from local source
+oc start-build my-app --from-dir=.
+
+# Follow build logs
+oc logs -f bc/my-app
+
+# Cancel a build
+oc cancel-build my-app-1
+
+# Rebuild
+oc start-build my-app --from-restart
+
+# View build config
+oc get bc my-app -o yaml
+oc describe bc my-app
+\`\`\`
+
+## Image Streams
+
+\`\`\`bash
+# List image streams
+oc get is
+
+# List image streams in openshift namespace
+oc get is -n openshift
+
+# Import image from external registry
+oc import-image my-image:latest --from=registry.example.com/my-image:latest
+
+# Tag an image
+oc tag my-image:latest my-image:v1.0
+
+# Describe image stream
+oc describe is my-image
+\`\`\`
+
+## Rollout Management
+
+\`\`\`bash
+# Check rollout status
+oc rollout status dc/my-app
+
+# View rollout history
+oc rollout history dc/my-app
+
+# Rollback to previous version
+oc rollout undo dc/my-app
+
+# Rollback to specific version
+oc rollout undo dc/my-app --to-version=2
+
+# Pause rollout
+oc rollout pause dc/my-app
+
+# Resume rollout
+oc rollout resume dc/my-app
+
+# Restart deployment
+oc rollout restart dc/my-app
+
+# Set replica count
+oc scale dc/my-app --replicas=3
+\`\`\`
+`,
+  },
+  {
+    slug: "openshift-networking",
+    title: "OpenShift Networking & Routes",
+    description: "Routes, services, and networking configuration in OpenShift",
+    category: "OpenShift",
+    tags: ["route", "service", "networking", "tls", "domain"],
+    content: `# OpenShift Networking & Routes
+
+Exposing applications and managing networking in OpenShift.
+
+## Routes
+
+\`\`\`bash
+# Create a route
+oc expose svc/my-app
+
+# Create route with custom hostname
+oc expose svc/my-app --hostname=app.example.com
+
+# Create route with path
+oc expose svc/my-app --path=/api
+
+# Create secure route (edge termination)
+oc create route edge my-route --service=my-app --hostname=app.example.com
+
+# Create route with passthrough termination
+oc create route passthrough my-route --service=my-app --hostname=app.example.com
+
+# List routes
+oc get routes
+
+# Describe a route
+oc describe route my-route
+
+# Delete a route
+oc delete route my-route
+\`\`\`
+
+## Services
+
+\`\`\`bash
+# List services
+oc get services
+oc get svc
+
+# Expose a deployment as service
+oc expose dc/my-app --port=8080
+
+# Expose with target port
+oc expose dc/my-app --port=80 --target-port=8080
+
+# Create service from file
+oc create -f service.yaml
+
+# Describe a service
+oc describe svc my-app
+\`\`\`
+
+## Networking Troubleshooting
+
+\`\`\`bash
+# Check pod connectivity
+oc exec my-pod -- curl -s http://service-name:port
+
+# Check DNS resolution
+oc exec my-pod -- nslookup service-name
+oc exec my-pod -- nslookup service-name.project.svc.cluster.local
+
+# Check service endpoints
+oc get endpoints my-service
+
+# View network policies
+oc get networkpolicies
+
+# Describe network policy
+oc describe networkpolicy my-policy
+\`\`\`
+
+## Example Service and Route YAML
+
+\`\`\`yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+spec:
+  selector:
+    app: my-app
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP
+\`\`\`
+
+\`\`\`yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: my-app
+spec:
+  host: app.example.com
+  to:
+    kind: Service
+    name: my-app
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+\`\`\`
+`,
+  },
+  {
+    slug: "openshift-configmaps-secrets",
+    title: "OpenShift ConfigMaps & Secrets",
+    description: "Managing configuration and sensitive data in OpenShift",
+    category: "OpenShift",
+    tags: ["configmap", "secret", "configuration", "env", "volume"],
+    content: `# OpenShift ConfigMaps & Secrets
+
+Managing configuration and sensitive data in OpenShift.
+
+## ConfigMaps
+
+\`\`\`bash
+# Create configmap from literal values
+oc create configmap my-config --from-literal=KEY1=VALUE1 --from-literal=KEY2=VALUE2
+
+# Create configmap from file
+oc create configmap my-config --from-file=config.properties
+
+# Create configmap from directory
+oc create configmap my-config --from-file=config/
+
+# Create configmap from env file
+oc create configmap my-config --from-env-file=.env
+
+# List configmaps
+oc get configmaps
+oc get cm
+
+# Describe a configmap
+oc describe cm my-config
+
+# Get specific key
+oc get cm my-config -o jsonpath='{.data.KEY1}'
+
+# Edit a configmap
+oc edit cm my-config
+
+# Delete a configmap
+oc delete cm my-config
+\`\`\`
+
+## Secrets
+
+\`\`\`bash
+# Create generic secret
+oc create secret generic my-secret --from-literal=username=admin --from-literal=password=s3cret
+
+# Create secret from file
+oc create secret generic my-secret --from-file=ssh-privatekey=~/.ssh/id_rsa
+
+# Create TLS secret
+oc create secret tls my-tls --cert=cert.pem --key=key.pem
+
+# Create docker registry secret
+oc create secret docker-registry my-registry \
+  --docker-server=registry.example.com \
+  --docker-username=user \
+  --docker-password=pass
+
+# Link secret to service account for pulls
+oc secrets link default my-registry --for=pull
+
+# List secrets
+oc get secrets
+
+# Describe a secret
+oc describe secret my-secret
+
+# Delete a secret
+oc delete secret my-secret
+\`\`\`
+
+## Using ConfigMaps and Secrets
+
+\`\`\`yaml
+# As environment variables
+spec:
+  containers:
+    - name: app
+      envFrom:
+        - configMapRef:
+            name: my-config
+        - secretRef:
+            name: my-secret
+
+# As single environment variable
+spec:
+  containers:
+    - name: app
+      env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: my-config
+              key: database-host
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: my-secret
+              key: password
+\`\`\`
+
+\`\`\`yaml
+# As mounted volumes
+spec:
+  containers:
+    - name: app
+      volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+        - name: secret-volume
+          mountPath: /etc/secrets
+  volumes:
+    - name: config-volume
+      configMap:
+        name: my-config
+    - name: secret-volume
+      secret:
+        secretName: my-secret
+\`\`\`
+`,
+  },
 ]
 
 export const categories = [
@@ -3226,6 +3678,7 @@ export const categories = [
   { name: "Network", slug: "network", count: allContent.filter((c) => c.category === "Network").length },
   { name: "uv", slug: "uv", count: allContent.filter((c) => c.category === "uv").length },
   { name: "Miniconda", slug: "miniconda", count: allContent.filter((c) => c.category === "Miniconda").length },
+  { name: "OpenShift", slug: "openshift", count: allContent.filter((c) => c.category === "OpenShift").length },
 ]
 
 function extractCommands(content: string): string[] {

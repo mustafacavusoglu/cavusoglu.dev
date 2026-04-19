@@ -3,53 +3,18 @@ import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Github, Star } from "lucide-react"
+import { readFileSync } from "fs"
+import { join } from "path"
 
-const projects = [
-  {
-    name: "RAG-Langchain",
-    description: "RAG Chat application using Langchain, OpenAI and Streamlit",
-    url: "https://github.com/mustafacavusoglu/RAG-Langchain",
-    language: "Python",
-    stars: 3,
-  },
-  {
-    name: "fast-api-yolov5-deploy-on-aws",
-    description: "YOLOv5 model deployment on AWS using FastAPI",
-    url: "https://github.com/mustafacavusoglu/fast-api-yolov5-deploy-on-aws",
-    language: "Python",
-    stars: 1,
-  },
-  {
-    name: "pytube-PyQt5",
-    description: "YouTube video downloader desktop application built with PyQt5",
-    url: "https://github.com/mustafacavusoglu/pytube-PyQt5",
-    language: "Python",
-    stars: 1,
-  },
-  {
-    name: "PyTorch-Training-Script",
-    description: "Reusable PyTorch training script template for deep learning projects",
-    url: "https://github.com/mustafacavusoglu/PyTorch-Training-Script",
-    language: "Python",
-    stars: 1,
-  },
-  {
-    name: "yolo-5-7-DataPrep",
-    description: "Mask olan segmentation verilerinden yolo modelleri için eğitim verilerinin hazırlanması",
-    url: "https://github.com/mustafacavusoglu/yolo-5-7-DataPrep",
-    language: "Python",
-    stars: 1,
-  },
-  {
-    name: "segmentation-flask-app",
-    description: "Image segmentation web application built with Flask",
-    url: "https://github.com/mustafacavusoglu/segmentation-flask-app",
-    language: "JavaScript",
-    stars: 1,
-  },
-]
+async function getProjects() {
+  const filePath = join(process.cwd(), 'public', 'projects.json')
+  const fileContent = readFileSync(filePath, 'utf-8')
+  return JSON.parse(fileContent)
+}
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const projects = await getProjects()
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -61,7 +26,7 @@ export default function ProjectsPage() {
             <p className="text-muted-foreground mb-8">Open source projects and side work on GitHub</p>
 
             <div className="grid gap-6 md:grid-cols-2">
-              {projects.map((project, index) => (
+              {projects.map((project: any, index: number) => (
                 <Card key={index} className="group hover:border-primary/50 transition-colors">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
@@ -69,7 +34,7 @@ export default function ProjectsPage() {
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1 text-muted-foreground text-sm">
                           <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                          <span>{project.stars}</span>
+                          <span>{project.stargazerCount}</span>
                         </div>
                         <a
                           href={project.url}
@@ -86,7 +51,7 @@ export default function ProjectsPage() {
                     <p className="text-muted-foreground mb-4 line-clamp-2">
                       {project.description || "No description available"}
                     </p>
-                    <Badge variant="secondary">{project.language}</Badge>
+                    <Badge variant="secondary">{project.primaryLanguage?.name || "Unknown"}</Badge>
                   </CardContent>
                 </Card>
               ))}
