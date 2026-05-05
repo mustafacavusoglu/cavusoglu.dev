@@ -121,7 +121,7 @@ export default async function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 mb-4">
-                    {experiences.slice(-1).map((exp, i) => (
+                    {experiences.slice(0, 1).map((exp, i) => (
                       <div key={i} className="text-sm">
                         <p className="font-medium">{exp.title}</p>
                         <p className="text-muted-foreground text-xs">
