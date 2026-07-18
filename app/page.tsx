@@ -1,207 +1,166 @@
-import type React from "react"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
-import { CommandCard } from "@/components/command-card"
-import { allContent, categories } from "@/lib/content"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import {
-  TerminalSquare,
-  Container,
-  GitBranch,
-  Package,
-  Boxes,
-  Workflow,
-  Search,
   Briefcase,
   FolderKanban,
   User,
   MapPin,
   ArrowRight,
+  Mail,
+  Linkedin,
+  Github,
 } from "lucide-react"
 import Link from "next/link"
 import { readFileSync } from "fs"
 import { join } from "path"
 
-const categoryIcons: Record<string, React.ReactNode> = {
-  Linux: <TerminalSquare className="h-5 w-5" />,
-  Docker: <Container className="h-5 w-5" />,
-  Git: <GitBranch className="h-5 w-5" />,
-  uv: <Package className="h-5 w-5" />,
-  Miniconda: <Boxes className="h-5 w-5" />,
-  Kubernetes: <Workflow className="h-5 w-5" />,
-  OpenShift: <Container className="h-5 w-5" />,
-}
-
 const experiences = [
-  { title: "MLOps Engineer", company: "Intertech", period: "Nov 2025 - Present" },
-  { title: "Data Scientist", company: "Teknosa", period: "Sept 2023 - Oct 2025" },
-  { title: "AI Engineer", company: "MLP Care", period: "Sept 2022 - Sept 2023" },
+  { title: "MLOps Engineer", company: "Intertech", period: "Nov 2025 – Present" },
+  { title: "Data Scientist", company: "Teknosa", period: "Sept 2023 – Oct 2025" },
+  { title: "AI Engineer", company: "MLP Care", period: "Sept 2022 – Sept 2023" },
 ]
 
 async function getProjects() {
-  const filePath = join(process.cwd(), 'public', 'projects.json')
-  const fileContent = readFileSync(filePath, 'utf-8')
+  const filePath = join(process.cwd(), "public", "projects.json")
+  const fileContent = readFileSync(filePath, "utf-8")
   return JSON.parse(fileContent)
 }
 
 export default async function HomePage() {
   const projects = await getProjects()
+  const featuredProjects = (projects as any[]).filter(
+    (p) => p.description && p.description.length > 0
+  )
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <div className="flex flex-1">
         <Sidebar />
         <main className="flex-1 overflow-auto">
-          <div className="container px-4 py-8 md:px-8 lg:px-12">
-            {/* Hero Section - Updated with name */}
-            <section className="mb-12">
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/8 via-accent/5 to-transparent border border-border/50 p-8 md:p-12 shadow-sm">
-                <div className="relative z-10">
-                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-2 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text">Mustafa Çavuşoğlu</h1>
-                  <p className="text-xl md:text-2xl text-primary font-semibold mb-4">ML / MLOps Engineer</p>
-                  <p className="text-lg text-muted-foreground max-w-2xl mb-6 leading-relaxed">
-                    Building scalable machine learning systems and infrastructure. Passionate about automation,
-                    containerization, and making ML models production-ready.
+          <div className="container px-4 py-12 md:px-8 lg:px-12 max-w-4xl">
+            {/* 1. About */}
+            <section id="about" className="mb-16">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                  <User className="h-5 w-5" />
+                </div>
+                <h2 className="text-2xl font-semibold">About</h2>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl border bg-card p-8 md:p-10">
+                <div className="max-w-2xl">
+                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-1">
+                    Mustafa Çavuşoğlu
+                  </h1>
+                  <p className="text-lg text-primary font-semibold mb-4">
+                    ML / MLOps Engineer
                   </p>
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <p className="text-muted-foreground leading-relaxed mb-6">
+                    Building scalable machine learning systems and infrastructure.
+                    Passionate about automation, containerization, and making ML
+                    models production-ready.
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
                       <span>Turkey</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Search className="h-4 w-4" />
-                      <span>Press</span>
-                      <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs font-medium">
-                        <span className="text-xs">⌘</span>K
-                      </kbd>
-                      <span>to search</span>
-                    </div>
+                    <a
+                      href="mailto:mustafacavussoglu@gmail.com"
+                      className="flex items-center gap-2 hover:text-primary transition-colors"
+                    >
+                      <Mail className="h-4 w-4" />
+                      <span>mustafacavussoglu@gmail.com</span>
+                    </a>
+                    <a
+                      href="https://www.linkedin.com/in/mustafacavusoglu12/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 hover:text-primary transition-colors"
+                    >
+                      <Linkedin className="h-4 w-4" />
+                      <span>LinkedIn</span>
+                    </a>
+                    <a
+                      href="https://github.com/mustafacavusoglu"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 hover:text-primary transition-colors"
+                    >
+                      <Github className="h-4 w-4" />
+                      <span>GitHub</span>
+                    </a>
                   </div>
                 </div>
-                <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-gradient-to-br from-primary/15 to-accent/10 blur-3xl opacity-60" />
-                <div className="absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-gradient-to-tr from-accent/15 to-primary/10 blur-3xl opacity-50" />
               </div>
             </section>
 
-            {/* Summary Cards Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-12">
-              {/* About Summary */}
-              <Card className="group hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-                <CardHeader className="flex flex-row items-center gap-3">
-                  <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-2.5 text-primary">
-                    <User className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">About</CardTitle>
-                    <CardDescription>Who I am</CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    ML/MLOps Engineer with expertise in building production-grade machine learning systems, Kubernetes
-                    orchestration, and CI/CD pipelines.
-                  </p>
-                  <Link href="/about" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-                    Learn more <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </CardContent>
-              </Card>
+            {/* 2. Experiences */}
+            <section id="experiences" className="mb-16">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="rounded-lg bg-accent/10 p-2 text-accent">
+                  <Briefcase className="h-5 w-5" />
+                </div>
+                <h2 className="text-2xl font-semibold">Experiences</h2>
+              </div>
 
-              {/* Experiences Summary */}
-              <Card className="group hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-                <CardHeader className="flex flex-row items-center gap-3">
-                  <div className="rounded-xl bg-gradient-to-br from-accent/15 to-accent/5 p-2.5 text-accent">
-                    <Briefcase className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Experiences</CardTitle>
-                    <CardDescription>Work history</CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 mb-4">
-                    {experiences.slice(0, 1).map((exp, i) => (
-                      <div key={i} className="text-sm">
-                        <p className="font-medium">{exp.title}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {exp.company} • {exp.period}
+              <div className="space-y-4">
+                {experiences.map((exp, i) => (
+                  <Card key={i} className="group hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold">{exp.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {exp.company} &middot; {exp.period}
                         </p>
                       </div>
-                    ))}
-                  </div>
-                  <Link
-                    href="/experiences"
-                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                  >
-                    View all <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </CardContent>
-              </Card>
-
-              {/* Projects Summary */}
-              <Card className="group hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-                <CardHeader className="flex flex-row items-center gap-3">
-                  <div className="rounded-xl bg-gradient-to-br from-primary/15 to-accent/10 p-2.5 text-primary">
-                    <FolderKanban className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Projects</CardTitle>
-                    <CardDescription>Featured work</CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 mb-4">
-                    {projects.slice(0, 2).map((project: { name: string; description: string }, i: number) => (
-                      <div key={i} className="text-sm">
-                        <p className="font-medium">{project.name}</p>
-                        <p className="text-muted-foreground text-xs">{project.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <Link
-                    href="/projects"
-                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                  >
-                    View all <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Knowledge Center Overview */}
-            <section className="mb-12">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold">Knowledge Center</h2>
-                <Badge variant="secondary">{allContent.length} guides</Badge>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {categories.map((category) => (
-                  <a
-                    key={category.slug}
-                    href={`/category/${category.slug}`}
-                    className="group flex flex-col items-center gap-3 rounded-2xl border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
-                  >
-                    <div className="rounded-xl bg-gradient-to-br from-primary/15 to-accent/10 p-3 text-primary transition-all group-hover:scale-110 group-hover:from-primary group-hover:to-accent group-hover:text-primary-foreground group-hover:shadow-lg">
-                      {categoryIcons[category.name]}
-                    </div>
-                    <div className="text-center">
-                      <p className="font-medium">{category.name}</p>
-                      <p className="text-xs text-muted-foreground">{category.count} guides</p>
-                    </div>
-                  </a>
+                      <Link href="/experiences">
+                        <Button variant="outline" size="sm" className="shrink-0">
+                          View Details
+                          <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             </section>
 
-            {/* Recent Guides */}
-            <section>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold">Recent Guides</h2>
+            {/* 3. Projects */}
+            <section id="projects" className="mb-16">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                  <FolderKanban className="h-5 w-5" />
+                </div>
+                <h2 className="text-2xl font-semibold">Projects</h2>
               </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {allContent.slice(0, 6).map((item) => (
-                  <CommandCard key={item.slug} item={item} />
+
+              <div className="space-y-4">
+                {featuredProjects.map((project: any, i: number) => (
+                  <Card key={i} className="group hover:border-primary/40 transition-colors">
+                    <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold">{project.name}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {project.description}
+                        </p>
+                      </div>
+                      <a
+                        href={project.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button variant="outline" size="sm" className="shrink-0">
+                          View Details
+                          <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                        </Button>
+                      </a>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             </section>

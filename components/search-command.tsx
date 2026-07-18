@@ -143,7 +143,7 @@ export function SearchCommand() {
                   key={item.slug}
                   value={item.title}
                   onSelect={() => {
-                    router.push(`/docs/${item.slug}`)
+                    router.push(`/mynotes/${item.category.toLowerCase()}/${item.slug}`)
                     setOpen(false)
                   }}
                   className="flex items-start gap-3 px-3 py-3 rounded-lg cursor-pointer data-[selected=true]:bg-primary/10 data-[selected=true]:text-foreground"

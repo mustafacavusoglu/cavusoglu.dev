@@ -9,7 +9,7 @@ interface CommandCardProps {
 
 export function CommandCard({ item }: CommandCardProps) {
   return (
-    <Link href={`/docs/${item.slug}`}>
+    <Link href={`/mynotes/${item.category.toLowerCase()}/${item.slug}`}>
       <Card className="h-full transition-all hover:border-primary/50 hover:shadow-md hover:shadow-primary/5">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">

@@ -1,0 +1,59 @@
+name: Fetch Pinned Repos
+
+on:
+  schedule:
+    - cron: "0 6 * * *"  # Daily at 06:00 UTC
+  workflow_dispatch:      # Manual trigger
+
+jobs:
+  fetch-pinned:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch pinned repos via GitHub GraphQL API
+        env:
+          GITHUB_TOKEN: ${{ secrets.PINNED_REPOS_TOKEN }}
+        run: |
+          # Use the GitHub GraphQL API to get pinned repos with details
+          QUERY='{
+            "query": "query { user(login: \"mustafacavusoglu\") { pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { name description url stargazerCount primaryLanguage { name } } } } } }"
+          }'
+
+          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+               -H "Content-Type: application/json" \
+               -d "$QUERY" \
+               https://api.github.com/graphql \
+            | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          repos = data['data']['user']['pinnedItems']['nodes']
+          result = []
+          for r in repos:
+              result.append({
+                  'name': r['name'],
+                  'description': r.get('description'),
+                  'url': r.get('url', ''),
+                  'primaryLanguage': r.get('primaryLanguage') or {'name': 'Unknown'},
+                  'stargazerCount': r.get('stargazerCount', 0)
+              })
+          print(json.dumps(result, indent=2, ensure_ascii=False))
+          " > public/projects.json
+
+          echo "Fetched $(python3 -c 'import json; print(len(json.load(open(\"public/projects.json\"))))') repos"
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if ! git diff --quiet public/projects.json; then
+            git add public/projects.json
+            git commit -m "chore: update pinned repos [skip ci]"
+            git push
+            echo "✅ Pushed updated projects.json"
+          else
+            echo "No changes to projects.json"
+          fi

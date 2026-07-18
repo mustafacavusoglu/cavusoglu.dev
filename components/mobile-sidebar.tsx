@@ -1,20 +1,10 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { categories } from "@/lib/content"
 import {
-  TerminalSquare,
-  Container,
-  GitBranch,
-  Package,
-  Boxes,
-  Workflow,
-  Globe,
-  ChevronDown,
   BookOpen,
   Briefcase,
   FolderKanban,
@@ -22,18 +12,7 @@ import {
   Github,
   Linkedin,
 } from "lucide-react"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
-
-const categoryIcons: Record<string, React.ReactNode> = {
-  Linux: <TerminalSquare className="h-4 w-4" />,
-  Docker: <Container className="h-4 w-4" />,
-  Git: <GitBranch className="h-4 w-4" />,
-  uv: <Package className="h-4 w-4" />,
-  Miniconda: <Boxes className="h-4 w-4" />,
-  Kubernetes: <Workflow className="h-4 w-4" />,
-  Network: <Globe className="h-4 w-4" />,
-}
 
 // Medium icon
 function MediumIcon({ className }: { className?: string }) {
@@ -56,7 +35,6 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ onClose }: MobileSidebarProps) {
   const pathname = usePathname()
-  const [knowledgeOpen, setKnowledgeOpen] = useState(true)
 
   const mainNavItems = [
     { name: "About", href: "/about", icon: <User className="h-4 w-4" /> },
@@ -68,59 +46,42 @@ export function MobileSidebar({ onClose }: MobileSidebarProps) {
     <div className="flex h-full flex-col">
       <nav className="flex-1 space-y-1 p-4">
         {/* Main Navigation */}
-        <div className="pb-4">
-          {mainNavItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                pathname === item.href
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              {item.icon}
-              {item.name}
-            </Link>
-          ))}
+        {mainNavItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+              pathname === item.href
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            {item.icon}
+            {item.name}
+          </Link>
+        ))}
+
+        {/* Divider */}
+        <div className="py-2">
+          <div className="border-t" />
         </div>
 
-        {/* Knowledge Center - Collapsible */}
-        <Collapsible open={knowledgeOpen} onOpenChange={setKnowledgeOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors">
-            <div className="flex items-center gap-3">
-              <BookOpen className="h-4 w-4" />
-              Knowledge Center
-            </div>
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                knowledgeOpen && "rotate-180",
-              )}
-            />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pl-4 pt-1 space-y-1">
-            {categories.map((category) => (
-              <Link
-                key={category.slug}
-                href={`/category/${category.slug}`}
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                  pathname === `/category/${category.slug}`
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                {categoryIcons[category.name] || <TerminalSquare className="h-4 w-4" />}
-                {category.name}
-                <span className="ml-auto text-xs opacity-60">{category.count}</span>
-              </Link>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
+        {/* My Notes */}
+        <Link
+          href="/mynotes"
+          onClick={onClose}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+            pathname.startsWith("/mynotes")
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+        >
+          <BookOpen className="h-4 w-4" />
+          My Notes
+        </Link>
       </nav>
 
       {/* Social Links at Bottom */}
@@ -150,4 +111,3 @@ export function MobileSidebar({ onClose }: MobileSidebarProps) {
     </div>
   )
 }
-
