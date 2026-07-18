@@ -16,33 +16,37 @@ jobs:
       - name: Fetch repos and update projects.json
         run: |
           python3 -c "
-          import json, urllib.request
+          import json, urllib.request, os
 
           repos = []
 
-          # Try GraphQL for pinned repos first
-          token = '${{ secrets.PINNED_REPOS_TOKEN }}'
+          # Try GraphQL for pinned repos (needs token)
+          token = os.environ.get('GH_TOKEN', '')
           if token:
               query = json.dumps({
                   'query': '{ user(login: \"mustafacavusoglu\") { pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { name description url stargazerCount primaryLanguage { name } } } } } }'
               }).encode()
-              req = urllib.request.Request('https://api.github.com/graphql', data=query)
+              req = urllib.request.Request('https://api.github.com/graphql', data=query, method='POST')
               req.add_header('Authorization', f'Bearer {token}')
               req.add_header('Content-Type', 'application/json')
               req.add_header('User-Agent', 'GitHub-Action')
               try:
                   with urllib.request.urlopen(req) as resp:
-                      data = json.loads(resp.read())
-                      pinned = data.get('data', {}).get('user', {}).get('pinnedItems', {}).get('nodes', [])
-                      if pinned:
-                          repos = pinned
-                          print(f'Got {len(repos)} pinned repos via GraphQL')
+                      body = json.loads(resp.read())
+                      data = body.get('data')
+                      if data and data.get('user') and data['user'].get('pinnedItems'):
+                          pinned = data['user']['pinnedItems'].get('nodes', [])
+                          if pinned and any(p for p in pinned if p):
+                              repos = [p for p in pinned if p]
+                              print(f'Got {len(repos)} pinned repos via GraphQL')
               except Exception as e:
-                  print(f'GraphQL failed: {e}')
+                  print(f'GraphQL skipped: {e}')
 
-          # Fallback: REST API for recent repos
+          # Fallback: REST API for recent repos (no auth needed for public repos)
           if not repos:
-              req = urllib.request.Request('https://api.github.com/users/mustafacavusoglu/repos?sort=pushed&per_page=10&type=owner')
+              req = urllib.request.Request(
+                  'https://api.github.com/users/mustafacavusoglu/repos?sort=pushed&per_page=10&type=owner'
+              )
               req.add_header('User-Agent', 'GitHub-Action')
               req.add_header('Accept', 'application/vnd.github.v3+json')
               with urllib.request.urlopen(req) as resp:
@@ -70,8 +74,10 @@ jobs:
 
           with open('public/projects.json', 'w') as f:
               json.dump(result, f, indent=2, ensure_ascii=False)
-          print(json.dumps(result, indent=2, ensure_ascii=False))
+          print(f'Wrote {len(result)} repos to projects.json')
           "
+        env:
+          GH_TOKEN: ${{ secrets.PINNED_REPOS_TOKEN }}
 
       - name: Commit and push if changed
         run: |
