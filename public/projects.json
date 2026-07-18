@@ -1,14 +1,5 @@
 [
   {
-    "name": "cavusoglu.dev",
-    "description": "Personal Website",
-    "url": "https://github.com/mustafacavusoglu/cavusoglu.dev",
-    "primaryLanguage": {
-      "name": "TypeScript"
-    },
-    "stargazerCount": 0
-  },
-  {
     "name": "axon",
     "description": null,
     "url": "https://github.com/mustafacavusoglu/axon",
@@ -18,29 +9,11 @@
     "stargazerCount": 0
   },
   {
-    "name": "kueue-system",
-    "description": "Openshift OAuth destekli FIFO kuyruk yönetim sistemi. ",
-    "url": "https://github.com/mustafacavusoglu/kueue-system",
+    "name": "prt",
+    "description": "A CLI tool that list and kill TCP ports",
+    "url": "https://github.com/mustafacavusoglu/prt",
     "primaryLanguage": {
-      "name": "HTML"
-    },
-    "stargazerCount": 0
-  },
-  {
-    "name": "GIS",
-    "description": null,
-    "url": "https://github.com/mustafacavusoglu/GIS",
-    "primaryLanguage": {
-      "name": "JavaScript"
-    },
-    "stargazerCount": 0
-  },
-  {
-    "name": "HGS-UI",
-    "description": "HGS geçiş dosyanızı (.xlsx) yükleyin; karayolu ve özel otoyol geçişlerinizi tarih, ücret ve lokasyona göre filtreleyin.",
-    "url": "https://github.com/mustafacavusoglu/HGS-UI",
-    "primaryLanguage": {
-      "name": "JavaScript"
+      "name": "Go"
     },
     "stargazerCount": 0
   },
@@ -50,6 +23,33 @@
     "url": "https://github.com/mustafacavusoglu/hill",
     "primaryLanguage": {
       "name": "Go"
+    },
+    "stargazerCount": 0
+  },
+  {
+    "name": "minikube-ui",
+    "description": "Openshift like User Interface for Minikube",
+    "url": "https://github.com/mustafacavusoglu/minikube-ui",
+    "primaryLanguage": {
+      "name": "TypeScript"
+    },
+    "stargazerCount": 0
+  },
+  {
+    "name": "release-summarizer",
+    "description": null,
+    "url": "https://github.com/mustafacavusoglu/release-summarizer",
+    "primaryLanguage": {
+      "name": "Python"
+    },
+    "stargazerCount": 0
+  },
+  {
+    "name": "pdf-editor",
+    "description": null,
+    "url": "https://github.com/mustafacavusoglu/pdf-editor",
+    "primaryLanguage": {
+      "name": "TypeScript"
     },
     "stargazerCount": 0
   }
