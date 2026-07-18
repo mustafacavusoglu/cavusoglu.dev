@@ -1,37 +1,37 @@
 [
   {
-    "name": "minikube-ui",
-    "description": "Openshift like User Interface for Minikube",
-    "url": "https://github.com/mustafacavusoglu/minikube-ui",
+    "name": "cavusoglu.dev",
+    "description": "Personal Website",
+    "url": "https://github.com/mustafacavusoglu/cavusoglu.dev",
     "primaryLanguage": {
       "name": "TypeScript"
     },
     "stargazerCount": 0
   },
   {
-    "name": "prt",
-    "description": "A CLI tool that list and kill TCP ports",
-    "url": "https://github.com/mustafacavusoglu/prt",
-    "primaryLanguage": {
-      "name": "Go"
-    },
-    "stargazerCount": 0
-  },
-  {
-    "name": "hill",
-    "description": "Terminal-based HTTP client, load tester, and network checker — a Postman + hey hybrid for the CLI and TUI.",
-    "url": "https://github.com/mustafacavusoglu/hill",
-    "primaryLanguage": {
-      "name": "Go"
-    },
-    "stargazerCount": 0
-  },
-  {
-    "name": "release-summarizer",
+    "name": "axon",
     "description": null,
-    "url": "https://github.com/mustafacavusoglu/release-summarizer",
+    "url": "https://github.com/mustafacavusoglu/axon",
     "primaryLanguage": {
-      "name": "Python"
+      "name": "Rust"
+    },
+    "stargazerCount": 0
+  },
+  {
+    "name": "kueue-system",
+    "description": "Openshift OAuth destekli FIFO kuyruk yönetim sistemi. ",
+    "url": "https://github.com/mustafacavusoglu/kueue-system",
+    "primaryLanguage": {
+      "name": "HTML"
+    },
+    "stargazerCount": 0
+  },
+  {
+    "name": "GIS",
+    "description": null,
+    "url": "https://github.com/mustafacavusoglu/GIS",
+    "primaryLanguage": {
+      "name": "JavaScript"
     },
     "stargazerCount": 0
   },
@@ -45,11 +45,11 @@
     "stargazerCount": 0
   },
   {
-    "name": "pdf-editor",
-    "description": null,
-    "url": "https://github.com/mustafacavusoglu/pdf-editor",
+    "name": "hill",
+    "description": "Terminal-based HTTP client, load tester, and network checker — a Postman + hey hybrid for the CLI and TUI.",
+    "url": "https://github.com/mustafacavusoglu/hill",
     "primaryLanguage": {
-      "name": "TypeScript"
+      "name": "Go"
     },
     "stargazerCount": 0
   }

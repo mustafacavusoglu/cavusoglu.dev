@@ -2,8 +2,8 @@ name: Fetch Pinned Repos
 
 on:
   schedule:
-    - cron: "0 6 * * *"  # Daily at 06:00 UTC
-  workflow_dispatch:      # Manual trigger
+    - cron: "0 6 * * *"
+  workflow_dispatch:
 
 jobs:
   fetch-pinned:
@@ -13,36 +13,65 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch pinned repos via GitHub GraphQL API
-        env:
-          GITHUB_TOKEN: ${{ secrets.PINNED_REPOS_TOKEN }}
+      - name: Fetch repos and update projects.json
         run: |
-          # Use the GitHub GraphQL API to get pinned repos with details
-          QUERY='{
-            "query": "query { user(login: \"mustafacavusoglu\") { pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { name description url stargazerCount primaryLanguage { name } } } } } }"
-          }'
+          python3 -c "
+          import json, urllib.request
 
-          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-               -H "Content-Type: application/json" \
-               -d "$QUERY" \
-               https://api.github.com/graphql \
-            | python3 -c "
-          import json, sys
-          data = json.load(sys.stdin)
-          repos = data['data']['user']['pinnedItems']['nodes']
+          repos = []
+
+          # Try GraphQL for pinned repos first
+          token = '${{ secrets.PINNED_REPOS_TOKEN }}'
+          if token:
+              query = json.dumps({
+                  'query': '{ user(login: \"mustafacavusoglu\") { pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { name description url stargazerCount primaryLanguage { name } } } } } }'
+              }).encode()
+              req = urllib.request.Request('https://api.github.com/graphql', data=query)
+              req.add_header('Authorization', f'Bearer {token}')
+              req.add_header('Content-Type', 'application/json')
+              req.add_header('User-Agent', 'GitHub-Action')
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      data = json.loads(resp.read())
+                      pinned = data.get('data', {}).get('user', {}).get('pinnedItems', {}).get('nodes', [])
+                      if pinned:
+                          repos = pinned
+                          print(f'Got {len(repos)} pinned repos via GraphQL')
+              except Exception as e:
+                  print(f'GraphQL failed: {e}')
+
+          # Fallback: REST API for recent repos
+          if not repos:
+              req = urllib.request.Request('https://api.github.com/users/mustafacavusoglu/repos?sort=pushed&per_page=10&type=owner')
+              req.add_header('User-Agent', 'GitHub-Action')
+              req.add_header('Accept', 'application/vnd.github.v3+json')
+              with urllib.request.urlopen(req) as resp:
+                  all_repos = json.loads(resp.read())
+                  for r in all_repos[:6]:
+                      if not r.get('fork'):
+                          repos.append({
+                              'name': r['name'],
+                              'description': r.get('description'),
+                              'url': r['html_url'],
+                              'primaryLanguage': {'name': r.get('language') or 'Unknown'},
+                              'stargazerCount': r.get('stargazers_count', 0)
+                          })
+              print(f'Got {len(repos)} repos via REST API')
+
           result = []
           for r in repos:
               result.append({
-                  'name': r['name'],
+                  'name': r.get('name', ''),
                   'description': r.get('description'),
                   'url': r.get('url', ''),
                   'primaryLanguage': r.get('primaryLanguage') or {'name': 'Unknown'},
                   'stargazerCount': r.get('stargazerCount', 0)
               })
-          print(json.dumps(result, indent=2, ensure_ascii=False))
-          " > public/projects.json
 
-          echo "Fetched $(python3 -c 'import json; print(len(json.load(open(\"public/projects.json\"))))') repos"
+          with open('public/projects.json', 'w') as f:
+              json.dump(result, f, indent=2, ensure_ascii=False)
+          print(json.dumps(result, indent=2, ensure_ascii=False))
+          "
 
       - name: Commit and push if changed
         run: |
@@ -51,9 +80,9 @@ jobs:
 
           if ! git diff --quiet public/projects.json; then
             git add public/projects.json
-            git commit -m "chore: update pinned repos [skip ci]"
+            git commit -m "chore: update projects from GitHub repos"
             git push
-            echo "✅ Pushed updated projects.json"
+            echo "Pushed updated projects.json"
           else
             echo "No changes to projects.json"
           fi
