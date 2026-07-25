@@ -2,11 +2,15 @@ name: Fetch Pinned Repos
 
 on:
   schedule:
-    - cron: "0 6 * * *"
+    - cron: "0 6 1 * *"
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    types: [closed]
 
 jobs:
   fetch-pinned:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -65,16 +69,23 @@ jobs:
                   f'{API_URL}/users/{USERNAME}/repos?sort=pushed&per_page=10&type=owner',
                   headers=HEADERS, timeout=15
               )
-              for r in resp.json()[:6]:
-                  if not r.get('fork'):
-                      repos.append({
-                          'name': r['name'],
-                          'description': r.get('description'),
-                          'url': r['html_url'],
-                          'primaryLanguage': {'name': r.get('language') or 'Unknown'},
-                          'stargazerCount': r.get('stargazers_count', 0)
-                      })
-              print(f'Got {len(repos)} repos via REST API fallback')
+              if resp.status_code == 200:
+                  data = resp.json()
+                  if isinstance(data, list):
+                      for r in data[:6]:
+                          if not r.get('fork'):
+                              repos.append({
+                                  'name': r['name'],
+                                  'description': r.get('description'),
+                                  'url': r['html_url'],
+                                  'primaryLanguage': {'name': r.get('language') or 'Unknown'},
+                                  'stargazerCount': r.get('stargazers_count', 0)
+                              })
+                      print(f'Got {len(repos)} repos via REST API fallback')
+                  else:
+                      print(f'REST API returned unexpected type: {type(data).__name__}')
+              else:
+                  print(f'REST API fallback failed: {resp.status_code}')
 
           with open('public/projects.json', 'w') as f:
               json.dump(repos, f, indent=2, ensure_ascii=False)
