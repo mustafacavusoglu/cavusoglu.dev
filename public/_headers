@@ -8,5 +8,11 @@
   Cache-Control: public, max-age=31536000, immutable
 
 
-/games/*/assets/*
+/games/kasap/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/games/yorunge/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/games/nebula/assets/*
   Cache-Control: public, max-age=31536000, immutable
