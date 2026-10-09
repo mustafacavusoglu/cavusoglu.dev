@@ -113,6 +113,19 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section id="games" className="scroll-mt-4 border-b border-line py-16">
+          <h2 className={`${sectionTitle} mb-6`}>Games</h2>
+          <a href="/games/kasap/" className="group flex flex-wrap justify-between gap-x-6 gap-y-1.5 border-t border-line-soft py-5">
+            <div className="min-w-0 flex-[1_1_420px]">
+              <div className="mb-1.5 font-mono text-[15px] font-medium group-hover:text-accent">Avcı Kasap</div>
+              <div className="text-[15px] leading-relaxed text-body">
+                3D hunting and butcher-shop tycoon for phones, in the browser. Hunt, pack, sell, grow. Your progress stays in your browser.
+              </div>
+            </div>
+            <div className="pt-[3px] font-mono text-xs text-muted">Play →</div>
+          </a>
+        </section>
+
         <section className="pt-16 pb-24">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
             <h2 className={sectionTitle}>Notes</h2>

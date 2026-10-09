@@ -1,0 +1,6 @@
+# Old pages folded into the single-page home and the notes page
+/about / 301
+/experiences /#experience 301
+/projects /#projects 301
+/category/* /mynotes 301
+/mynotes/* /mynotes 301
