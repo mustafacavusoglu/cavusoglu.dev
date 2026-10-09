@@ -17,10 +17,6 @@ export const metadata: Metadata = {
     title: "Mustafa Çavuşoğlu – ML / MLOps Engineer",
     description: "Personal website and portfolio of Mustafa Çavuşoğlu, ML / MLOps Engineer.",
   },
-  icons: {
-    icon: '/icon.svg',
-    apple: '/apple-icon.svg',
-  },
 }
 
 export default function RootLayout({
