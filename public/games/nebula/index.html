@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0b1322" />
+  <title>Nebula Front</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600&family=Orbitron:wght@500;700&display=swap" />
+  <script type="module" crossorigin src="/games/nebula/assets/index-DTeWwCM2.js"></script>
+  <link rel="stylesheet" crossorigin href="/games/nebula/assets/index-BFAvX36h.css">
+</head>
+<body>
+  <div id="app">
+    <section id="menu" class="screen">
+      <button class="mute" id="m-mute" data-act="mute"></button>
+      <h1>NEBULA<span>FRONT</span></h1>
+      <p class="credits">◆ <b id="m-credits"></b></p>
+      <button class="primary" data-act="play">OYNA<small id="m-level"></small></button>
+      <button class="gift" id="m-daily" data-act="go:missions">Günlük ödül hazır</button>
+      <div class="nav">
+        <button data-act="go:levels">Bölümler</button>
+        <button data-act="go:hangar">Hangar</button>
+        <button data-act="go:missions">Görevler<i class="dot" id="m-dot"></i></button>
+      </div>
+    </section>
+
+    <section id="levels" class="screen">
+      <div class="top"><button data-act="go:menu">‹</button><h2>Bölümler</h2></div>
+      <div class="grid" id="level-grid"></div>
+    </section>
+
+    <section id="hangar" class="screen">
+      <div class="top"><button data-act="go:menu">‹</button><h2>Hangar</h2><span class="credits" id="h-credits"></span></div>
+      <div class="list" id="upgrade-list"></div>
+    </section>
+
+    <section id="missions" class="screen">
+      <div class="top"><button data-act="go:menu">‹</button><h2>Görevler</h2></div>
+      <div class="card" id="login-card"></div>
+      <p>Günlük görevler · yenilenmeye <span id="reset-in"></span></p>
+      <div class="list" id="mission-list"></div>
+    </section>
+
+    <section id="play" class="screen">
+      <div id="hud">
+        <b id="hud-level"></b>
+        <div class="bar"><i id="hud-prog"></i></div>
+        <div class="hp" id="hud-hp"></div>
+        <span id="hud-credits"></span>
+        <div class="boss-bar" id="hud-boss" hidden><i></i></div>
+      </div>
+      <button id="btn-pause" data-act="pause" aria-label="Duraklat">II</button>
+      <div class="overlay" id="pause" hidden>
+        <h2>DURAKLATILDI</h2>
+        <button class="primary" data-act="resume">DEVAM</button>
+        <button data-act="quit">Menüye dön</button>
+      </div>
+      <div class="overlay" id="result" hidden>
+        <h2 id="r-title"></h2>
+        <div class="stars" id="r-stars"></div>
+        <p id="r-info"></p>
+        <p class="gold" id="r-mission">Günlük görev tamamlandı!</p>
+        <button class="primary" id="r-next">SONRAKİ BÖLÜM</button>
+        <button id="r-retry">Tekrar</button>
+        <button data-act="quit">Menü</button>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
