@@ -18,18 +18,12 @@ const games = [
     desc: "3D space shooter with levels, a hangar and ship upgrades.",
     tag: "Touch · mouse · keys",
   },
-  {
-    slug: "yilan",
-    name: "Kokpit Yılan",
-    desc: "Snake from the cockpit: you fly inside a 3D grid, radar on the dash.",
-    tag: "Desktop · keyboard",
-  },
 ]
 
 /** Screenshot cards; each opens the game. Progress is saved in the player's browser. */
 export function GameGrid() {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
       {games.map((g) => (
         <a key={g.slug} href={`/games/${g.slug}/`} className="group flex flex-col">
           <img

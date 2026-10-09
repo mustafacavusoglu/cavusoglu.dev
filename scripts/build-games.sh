@@ -8,4 +8,3 @@ OUT=$(cd "$(dirname "$0")/.." && pwd)/public/games
 (cd "$G/qucik-phone-game/web" && VITE_LOCAL_SAVES=1 npx vite build --base=/games/kasap/ --outDir "$OUT/kasap" --emptyOutDir)
 (cd "$G/suprise" && npx vite build --outDir "$OUT/yorunge" --emptyOutDir)
 (cd "$G/spaceGame" && npx vite build --base=/games/nebula/ --outDir "$OUT/nebula" --emptyOutDir)
-mkdir -p "$OUT/yilan" && cp "$G/firstViewSnake/index.html" "$OUT/yilan/index.html"
