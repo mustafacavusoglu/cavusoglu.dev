@@ -7,8 +7,8 @@
   <title>Nebula Front</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600&family=Orbitron:wght@500;700&display=swap" />
-  <script type="module" crossorigin src="/games/nebula/assets/index-DTeWwCM2.js"></script>
-  <link rel="stylesheet" crossorigin href="/games/nebula/assets/index-BFAvX36h.css">
+  <script type="module" crossorigin src="/games/nebula/assets/index-DXs6Iao_.js"></script>
+  <link rel="stylesheet" crossorigin href="/games/nebula/assets/index-BUOVIKKA.css">
 </head>
 <body>
   <div id="app">
@@ -48,9 +48,12 @@
         <div class="bar"><i id="hud-prog"></i></div>
         <div class="hp" id="hud-hp"></div>
         <span id="hud-credits"></span>
-        <div class="boss-bar" id="hud-boss" hidden><i></i></div>
+        <span id="hud-buff"></span>
+        <div class="boss" id="hud-boss" hidden><b id="hud-boss-name"></b><div class="boss-bar"><i></i></div></div>
       </div>
+      <div id="hud-toast"></div>
       <button id="btn-pause" data-act="pause" aria-label="Duraklat">II</button>
+      <button id="btn-bomb" aria-label="Bomba (Boşluk)">BOMBA<b id="hud-bombs"></b></button>
       <div class="overlay" id="pause" hidden>
         <h2>DURAKLATILDI</h2>
         <button class="primary" data-act="resume">DEVAM</button>
