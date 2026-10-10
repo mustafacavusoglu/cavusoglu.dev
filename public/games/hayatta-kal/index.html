@@ -68,6 +68,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 #mbtns{display:flex;flex-direction:column;gap:10px;width:min(260px,80vw)}
 #mbtns button{padding:14px;border-radius:12px;border:3px solid #5a4632;background:#3a2d1f;font-size:17px}
 #mbtns button:first-child{background:#6e2b26;border-color:#a3472d}
+#room{top:calc(env(safe-area-inset-top) + 66px);left:50%;transform:translateX(-50%);font-size:12px;padding:3px 8px;border-radius:8px;background:#0009;pointer-events:none}
+#room:empty{display:none}
 .help{font-size:13px;color:#bba98a;font-weight:400;max-width:380px;line-height:1.5}
 </style>
 </head>
@@ -91,6 +93,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   <button class="b" id="ba" aria-label="Saldır">⚔️</button>
 </div>
 <div id="toast" class="ui"></div>
+<div id="room" class="ui"></div>
 <div id="hurt" class="ui"></div>
 <div id="pop" class="ui"></div>
 <div id="craft" class="ui panel"><h2>Üretim <button class="x" id="cx" aria-label="Kapat">✕</button></h2><div id="clist"></div></div>
@@ -150,9 +153,9 @@ function genBiomes(seed){
 }
 const bioAt=(x,y)=>x<0||y<0||x>=WORLD||y>=WORLD?0:bio[(y/T|0)*W+(x/T|0)];
 const land=(x,y)=>bioAt(x,y)!==0;
-function ent(t,x,y,R=rnd){const e={t,x:Math.round(x),y:Math.round(y),s:Math.round((.85+R()*.35)*100)/100};
+function ent(t,x,y,R=rnd){const e={i:nid(),t,x:Math.round(x),y:Math.round(y),s:Math.round((.85+R()*.35)*100)/100};
   if(t==='tree')e.hp=5;if(t==='boulder'){e.hp=6;e.gold=R()<.25?1:0}if(t==='flower')e.c=R()*5|0;return e}
-function mob(t,x,y){return{t,x,y,hp:M[t].hp,face:1,walk:0,cd:0}}
+function mob(t,x,y){return{i:nid(),t,x,y,hp:M[t].hp,face:1,walk:0,cd:0}}
 function newGame(seed){
   genBiomes(seed);
   const R=mulberry(seed+3),E=[];
@@ -173,14 +176,15 @@ function newGame(seed){
   const ents=E.filter(e=>Math.hypot(e.x-sx,e.y-sy)>60&&!dens.some(d=>Math.hypot(d.x-e.x,d.y-e.y)<50)).concat(dens);
   for(const[t,n]of[['flint',3],['sapling',4],['grass',4],['tree',3]])for(let k=0;k<n;k++){
     for(let tries=0;tries<20;tries++){const a=R()*6.28,r=120+R()*200,x=sx+Math.cos(a)*r,y=sy+Math.sin(a)*r;if(land(x,y)){ents.push(ent(t,x,y,R));break}}}
-  G={seed,time:DAY*.02,lastDay:1,ents,hnd:5,hw:0,tips:{},p:{x:sx,y:sy,hp:150,hu:150,sa:200,inv:Array(12).fill(null),hand:null,body:null,face:1,walk:0,acd:0,sw:0,mv:0}};
+  G={seed,time:DAY*.02,lastDay:1,ents,hnd:5,hw:0,tips:{},p:newP(sx,sy)};
   topRabbits();
 }
+const newP=(x,y)=>({x,y,hp:150,hu:150,sa:200,inv:Array(12).fill(null),hand:null,body:null,face:1,walk:0,acd:0,sw:0,mv:0});
 function topRabbits(){
   let n=G.ents.filter(e=>e.t==='rabbit').length;
   for(let k=0;k<500&&n<25;k++){const x=rnd()*WORLD,y=rnd()*WORLD,b=bioAt(x,y);if((b===1||b===4)&&Math.hypot(x-G.p.x,y-G.p.y)>500){G.ents.push(mob('rabbit',x,y));n++}}
 }
-function spawnNear(t,r){for(let k=0;k<40;k++){const a=rnd()*6.28,x=G.p.x+Math.cos(a)*r,y=G.p.y+Math.sin(a)*r;if(land(x,y)){const m=mob(t,x,y);m.ag=1;G.ents.push(m);return m}}}
+function spawnNear(t,r,q=G.p){for(let k=0;k<40;k++){const a=rnd()*6.28,x=q.x+Math.cos(a)*r,y=q.y+Math.sin(a)*r;if(land(x,y)){const m=mob(t,x,y);m.ag=1;G.ents.push(m);return m}}}
 
 // ---------- state ----------
 let G=null,goal=null,purge=false,invDirty=true,charlie=0,tick=0,saveT=0;
@@ -200,7 +204,7 @@ function give(id,n=1,d){
 }
 function take(id,n){const inv=G.p.inv;for(let k=inv.length-1;k>=0&&n>0;k--){const s=inv[k];if(s&&s.id===id){const a=Math.min(n,s.n);s.n-=a;n-=a;if(!s.n)inv[k]=null}}invDirty=true}
 function take1(i){const s=G.p.inv[i];if(--s.n<=0)G.p.inv[i]=null;invDirty=true}
-function drop(id,n,x,y,d){for(let k=0;k<10;k++){const nx=x+(rnd()-.5)*44,ny=y+(rnd()-.5)*44;if(land(nx,ny)){x=nx;y=ny;break}}G.ents.push({t:'item',id,n,d,x,y})}
+function drop(id,n,x,y,d){for(let k=0;k<10;k++){const nx=x+(rnd()-.5)*44,ny=y+(rnd()-.5)*44;if(land(nx,ny)){x=nx;y=ny;break}}const e={i:nid(),t:'item',id,n,d,x,y};G.ents.push(e);dirty(e)}
 function loot(id,n,e){if(n>0)drop(id,n,e.x,e.y)}
 function equip(i){const p=G.p,s=p.inv[i],slot=I[s.id].tool;p.inv[i]=p[slot]||null;p[slot]=s;invDirty=true}
 function equipId(id){const i=G.p.inv.findIndex(s=>s&&s.id===id);if(i>=0)equip(i)}
@@ -216,9 +220,8 @@ function craft(k){
   let x=p.x+p.face*56,y=p.y+8;
   if(['fire','pit','sci'].includes(id)&&!land(x,y))return toast('Buraya kurulmaz.');
   for(const r in req)take(r,req[r]);
-  if(id==='fire')G.ents.push({t:'fire',x,y,fuel:90,max:180});
-  else if(id==='pit')G.ents.push({t:'pit',x,y,fuel:120,max:240});
-  else if(id==='sci')G.ents.push({t:'sci',x,y,s:1});
+  const e=id==='fire'?{t:'fire',x,y,fuel:90,max:180}:id==='pit'?{t:'pit',x,y,fuel:120,max:240}:id==='sci'?{t:'sci',x,y,s:1}:null;
+  if(e){e.i=nid();G.ents.push(e);dirty(e)}
   else{const tl=I[id].tool;if(tl&&!p[tl])p[tl]={id,n:1,d:I[id].dur};else{const left=give(id,1);if(left)drop(id,1,p.x,p.y,I[id].dur)}}
   toast(`${I[id].ic} ${I[id].n} yapıldı!`);invDirty=true;
 }
@@ -254,11 +257,16 @@ function gather(e){
     case'tree':e.sh=.25;wear('hand',1);if(--e.hp<=0){e.t='stump';e.rg=DAY*3;loot('log',2+(rnd()<.4),e)}break;
     case'boulder':e.sh=.25;wear('hand',1);if(--e.hp<=0){e.dead=1;purge=true;loot('rock',2+(rnd()<.5),e);if(rnd()<.6)loot('flint',1,e);if(e.gold)loot('gold',1+(rnd()<.4),e)}break;
   }
+  dirty(e);
 }
 function hit(e){
   const p=G.p,h=p.hand,dmg=h?I[h.id].dmg:10;
   if(h&&h.id!=='torch')wear('hand',1);
-  e.hp-=dmg;e.fl=.15;e.ag=1;
+  if(NET&&!NET.host){e.fl=.15;return send({t:'hit',i:e.i,dmg})}
+  strike(e,dmg,p);
+}
+function strike(e,dmg,p){
+  e.hp-=dmg;e.fl=.15;e.ag=1;dirty(e);
   const d=dist(e,p)||1;move(e,(e.x-p.x)/d*8,(e.y-p.y)/d*8,10);
   if(e.t==='den'&&e.hp>0&&!(e.sp>0)&&kids(e)<3){spawnSpider(e,1);e.sp=3}
   if(e.hp>0)return;
@@ -266,8 +274,8 @@ function hit(e){
   if(e.t==='rabbit')loot('morsel',1,e);
   else if(e.t==='spider')loot(rnd()<.5?'mmeat':'silk',1,e);
   else if(e.t==='hound')loot('mmeat',1,e);
-  else if(e.t==='shadow'){p.sa=Math.min(200,p.sa+15);toast('Gölge dağıldı. Kafan biraz toparlandı.')}
-  else if(e.t==='den'){loot('silk',3,e);toast('Örümcek yuvasını yok ettin!')}
+  else if(e.t==='shadow'){if(p!==G.p)return;p.sa=Math.min(200,p.sa+15);toast('Gölge dağıldı. Kafan biraz toparlandı.')}
+  else if(e.t==='den'){loot('silk',3,e);if(p===G.p)toast('Örümcek yuvasını yok ettin!')}
 }
 const kids=d=>G.ents.reduce((a,e)=>a+(e.t==='spider'&&!e.dead&&e.home===d.id),0);
 function spawnSpider(d,ag){const s=mob('spider',d.x+(rnd()-.5)*20,d.y+24);s.home=d.id;s.hx=d.x;s.hy=d.y;s.ag=ag;G.ents.push(s)}
@@ -298,16 +306,18 @@ function updPlayer(dt){
   if(m>.2){const k=Math.min(1,m);move(p,mx/m*200*k*dt,my/m*200*k*dt,11);if(Math.abs(mx)>.1)p.face=mx<0?-1:1;p.walk+=dt*12*k;p.mv=k}
 }
 function updMob(e,dt){
-  const m=M[e.t],p=G.p,ph=phase(),dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||1;
+  let p=G.p,d=Infinity;for(const q of players())if(!isDead(q)&&dist(q,e)<d){d=dist(q,e);p=q}
+  const alive=d<Infinity;if(!alive)d=dist(p,e);d=d||1;
+  const m=M[e.t],ph=phase(),dx=p.x-e.x,dy=p.y-e.y;
   e.cd=Math.max(0,e.cd-dt);e.fl=Math.max(0,(e.fl||0)-dt);
   let vx=0,vy=0,sp=m.spd,wander=false;
-  if(e.t==='rabbit'){if(d<160&&!G.dead){vx=-dx/d;vy=-dy/d}else wander=true}
+  if(e.t==='rabbit'){if(d<160&&alive){vx=-dx/d;vy=-dy/d}else wander=true}
   else{
-    let chase=!G.dead&&(e.t!=='spider'||e.ag||(ph>=.55&&d<320)||d<100);
+    let chase=alive&&(e.t!=='spider'||e.ag||(ph>=.55&&d<320)||d<100);
     if(e.t==='spider'&&d>700)e.ag=0,chase=false;
     if(chase){
       if(d>m.reach){vx=dx/d;vy=dy/d}
-      else if(e.cd<=0){hurt(m.dmg,m.kill);e.cd=m.cd;e.atk=.25}
+      else if(e.cd<=0){p===G.p?hurt(m.dmg,m.kill):send({t:'hurt',to:p.id,dmg:m.dmg,why:m.kill});e.cd=m.cd;e.atk=.25}
     }else if(e.t==='spider'){
       const hd=Math.hypot(e.hx-e.x,e.hy-e.y)||1;
       if(ph<.52||hd>260){vx=(e.hx-e.x)/hd;vy=(e.hy-e.y)/hd;sp*=.6;if(ph<.52&&hd<24){e.dead=1;purge=true}}else wander=true;
@@ -326,6 +336,7 @@ function hurt(dmg,why){
 }
 function die(why){
   if(G.dead)return;G.dead=1;G.p.hp=0;
+  if(NET){const p=G.p;for(const s of[...p.inv,p.hand,p.body])if(s)drop(s.id,s.n,p.x,p.y,s.d);return showMenu(`${why}<br>Eşyaların yere düştü.`)}
   const days=dayNo(),best=Math.max(days,+localStorage.getItem(BEST)||0);
   try{localStorage.setItem(BEST,best);localStorage.removeItem(KEY)}catch{}
   showMenu(`${why}<br>${days}. günde öldün. En iyi: ${best} gün.`,true);
@@ -334,14 +345,17 @@ function die(why){
 // ---------- simulation ----------
 function lights(){
   const L=[];for(const e of G.ents)if((e.t==='fire'||e.t==='pit')&&e.fuel>0)L.push({x:e.x,y:e.y-10,r:70+230*Math.sqrt(Math.min(1,e.fuel/(e.max/2))),f:1});
-  const p=G.p;if(p.hand&&p.hand.id==='torch')L.push({x:p.x,y:p.y-30,r:240,f:1});
+  for(const p of players())if(p.hand&&p.hand.id==='torch'&&!(p.peer&&p.dead))L.push({x:p.x,y:p.y-30,r:240,f:1});
   return L;
 }
 function update(dt){
-  G.time+=dt;const p=G.p,ph=phase(),day=dayNo(),dk=darkAt(ph);
-  if(day!==G.lastDay){G.lastDay=day;toast(`${day}. gün`);topRabbits()}
-  updPlayer(dt);
-  for(const e of G.ents){if(M[e.t]&&!e.dead)updMob(e,dt);if(e.sh>0)e.sh-=dt}
+  G.time+=dt;const p=G.p,ph=phase(),day=dayNo(),dk=darkAt(ph),host=!NET||NET.host,k=Math.min(1,dt*10);
+  if(day!==G.lastDay){G.lastDay=day;toast(`${day}. gün`);if(host)topRabbits()}
+  if(!G.dead)updPlayer(dt);
+  // co-op: other players and (on clients) the host's mobs glide to their last reported spot
+  for(const q of Object.values(PE)){q.x+=(q.tx-q.x)*k;q.y+=(q.ty-q.y)*k;q.sw=Math.max(0,q.sw-dt)}
+  for(const e of G.ents){if(M[e.t]&&!e.dead){if(host)updMob(e,dt);else if(e.tx!=null){e.x+=(e.tx-e.x)*k;e.y+=(e.ty-e.y)*k}}if(e.sh>0)e.sh-=dt}
+  if(!G.dead){
   // stats
   p.hu-=dt*150/(DAY*2);
   if(p.hu<=0){p.hu=0;p.hp-=dt*1.2;tip('starve','Açlıktan ölüyorsun! Hemen bir şey ye.');if(p.hp<=0)die('Açlıktan öldün.')}
@@ -350,15 +364,18 @@ function update(dt){
   if(!safe){ds-=.4;charlie+=dt;if(charlie>1.5)toast('Karanlıkta bir şey kıpırdıyor... Işık bul!');if(charlie>4){hurt(40,'Karanlıkta bir şey seni yedi.');charlie=2.5}}else charlie=0;
   if(G.ents.some(e=>HOST[e.t]&&!e.dead&&Math.abs(e.x-p.x)<250&&Math.abs(e.y-p.y)<250))ds-=.12;
   p.sa=clamp(p.sa+ds*dt,0,200);
+  if(p.hand&&p.hand.id==='torch')wear('hand',dt);
+  }
+  if(host){
   // hounds
   if(!G.hw&&day>=G.hnd&&ph>.3&&ph<.6){G.hw=20}
   if(G.hw>0){toast('Uzaktan hırıltılar geliyor... Hazırlan!');G.hw-=dt;
-    if(G.hw<=0){G.hw=0;G.hnd=day+3+(rnd()*3|0);for(let k=Math.min(6,2+(day/8|0));k--;)spawnNear('hound',560)}}
+    if(G.hw<=0){G.hw=0;G.hnd=day+3+(rnd()*3|0);const al=players().filter(q=>!isDead(q));for(let k=Math.min(6,2+(day/8|0));k--;)spawnNear('hound',560,al[k%al.length]||p)}}
   // sanity monsters
-  const sh=G.ents.filter(e=>e.t==='shadow'&&!e.dead);
-  if(p.sa<40&&!sh.length&&rnd()<dt/6)spawnNear('shadow',380);
-  if(p.sa>=70)for(const e of sh){e.dead=1;purge=true}
-  if(p.hand&&p.hand.id==='torch')wear('hand',dt);
+  const sh=G.ents.filter(e=>e.t==='shadow'&&!e.dead),low=players().find(q=>!isDead(q)&&q.sa<40);
+  if(low&&!sh.length&&rnd()<dt/6)spawnNear('shadow',380,low);
+  if(players().every(q=>q.sa>=70))for(const e of sh){e.dead=1;purge=true}
+  }
   if((tick+=dt)>=1){tick-=1;slow()}
   if(purge){G.ents=G.ents.filter(e=>!e.dead);purge=false}
 }
@@ -367,7 +384,7 @@ function slow(){
   for(const e of G.ents){
     if(e.rg>0&&(e.rg-=1)<=0){e.rg=0;if(e.t==='stump'){e.t='tree';e.hp=5}}
     if(e.t==='fire'||e.t==='pit'){if(e.fuel>0)e.fuel=Math.max(0,e.fuel-1);if(e.t==='fire'&&e.fuel<=0){e.dead=1;purge=true}}
-    if(e.t==='den'){e.sp=(e.sp||0)-1;const d=dist(e,p),n=kids(e);
+    if(e.t==='den'&&(!NET||NET.host)){e.sp=(e.sp||0)-1;const d=Math.min(...players().map(q=>dist(e,q))),n=kids(e);
       if(ph>=.55&&d<800&&n<2&&e.sp<=0){spawnSpider(e,0);e.sp=20}
       else if(ph<.55&&d<140&&n<1&&e.sp<=0){spawnSpider(e,1);e.sp=10}}
   }
@@ -383,7 +400,59 @@ function slow(){
 function tip(k,s){if(G.tips[k])return;G.tips[k]=1;toast(s,5000)}
 let toastT=0,toastS='';
 function toast(s,ms=2600){const n=performance.now(),el=$('toast');if(s===toastS&&n-toastT<ms-400)return;toastS=s;toastT=n;el.textContent=s;el.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>el.classList.remove('on'),ms)}
-function save(){if(G&&!G.dead)try{localStorage.setItem(KEY,JSON.stringify(G))}catch{}}
+function save(){if(G&&!G.dead&&!NET)try{localStorage.setItem(KEY,JSON.stringify(G))}catch{}}
+
+// ---------- co-op ----------
+// A Durable Object at /api/room/<code> relays JSON between 2-4 players. The lowest player id is the
+// host: it runs mobs, dens, hounds and shadows and streams them. Everyone simulates their own player
+// and applies world edits (gathering, chopping, drops, fires) locally, then broadcasts the changed ents.
+// ponytail: last write wins, so two players grabbing the same item in the same 100ms both get it.
+let NET=null,netT=0;const PE={},dirt=new Set(),ROOM=/^[A-Z0-9]{4,8}$/;
+function nid(){return Math.floor(rnd()*2**50)}
+function dirty(e){if(NET)dirt.add(e)}
+const players=()=>[G.p,...Object.values(PE)],isDead=q=>q===G.p?G.dead:q.dead;
+function send(m){if(NET&&NET.ws.readyState===1)NET.ws.send(JSON.stringify(m))}
+function coop(code,create){
+  const ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/api/room/${code}`);
+  NET={ws,code,create,id:0,host:false};G=null;$('mtext').textContent='Bağlanıyor...';$('mbtns').innerHTML='';
+  history.replaceState(null,'','#'+code);
+  ws.onmessage=ev=>{if(NET&&NET.ws===ws)onNet(JSON.parse(ev.data))};
+  ws.onclose=()=>{if(NET&&NET.ws===ws)leaveCoop('Bağlantı koptu.')};
+}
+function leaveCoop(msg){
+  const n=NET;NET=null;G=null;dirt.clear();for(const k in PE)delete PE[k];
+  if(n)try{n.ws.close()}catch{}
+  history.replaceState(null,'',location.pathname);showMenu(msg);
+}
+function onNet(m){
+  const pe=m.from&&(PE[m.from]||={peer:1,id:m.from,x:0,y:0,tx:0,ty:0,face:1,walk:0,mv:0,sw:0,sa:200,dead:1});
+  switch(m.t){
+    case'full':return leaveCoop('Oda dolu (en fazla 4 kişi).');
+    case'hello':NET.id=m.id;NET.host=m.host===m.id;
+      if(NET.host){if(!NET.create)return leaveCoop(`${NET.code} diye bir oda yok.`);newGame(Math.random()*1e9|0);start();toast(`Oda kodu: ${NET.code} — arkadaşın "Odaya Katıl" desin.`,6000)}
+      else $('mtext').textContent='Dünya yükleniyor...';break;
+    case'join':toast('Bir oyuncu katıldı.');if(NET.host&&G)send({t:'world',to:m.id,x:G.p.x,y:G.p.y,g:{...G,p:undefined,dead:undefined,tips:undefined}});break;
+    case'leave':delete PE[m.id];if(G)toast('Bir oyuncu ayrıldı.');
+      if(m.host===NET.id&&!NET.host){NET.host=true;if(G)toast('Oda sahibi artık sensin.')}break;
+    case'world':if(G)break;G=m.g;G.tips={};genBiomes(G.seed);G.p=newP(m.x,m.y);start();break;
+    case'st':if(!pe.tx)pe.x=m.x,pe.y=m.y;Object.assign(pe,{tx:m.x,ty:m.y,face:m.f,walk:m.w,mv:m.mv,hand:m.h&&{id:m.h},body:m.b,sa:m.sa,dead:m.dead});if(m.sw)pe.sw=.2;break;
+    case'hurt':if(G)hurt(m.dmg,m.why);break;
+    case'hit':{if(!NET.host||!G)break;const e=G.ents.find(e=>e.i===m.i&&!e.dead);if(e)strike(e,m.dmg,pe);break}
+    case'ent':{if(!G)break;const ix=new Map(G.ents.map(e=>[e.i,e]));
+      for(const o of m.e){const e=ix.get(o.i);if(o.dead){if(e){e.dead=1;purge=true}}else if(e)Object.assign(e,o);else G.ents.push(o)}break}
+    case'mob':{if(NET.host||!G)break;const ix=new Map(G.ents.map(e=>[e.i,e])),seen=new Set();G.time=m.time;
+      if(m.hw)toast('Uzaktan hırıltılar geliyor... Hazırlan!');
+      for(const[i,t,x,y,face,walk,hp,atk,fl]of m.m){let e=ix.get(i);if(!e){e=mob(t,x,y);e.i=i;e.hx=x;e.hy=y;G.ents.push(e)}
+        Object.assign(e,{tx:x,ty:y,face,walk,hp,atk,fl});seen.add(i)}
+      for(const e of G.ents)if(M[e.t]&&!seen.has(e.i)){e.dead=1;purge=true}break}
+  }
+}
+function netTick(){
+  if(!G)return;const p=G.p;
+  send({t:'st',x:p.x|0,y:p.y|0,f:p.face,w:+p.walk.toFixed(1),mv:p.mv,h:p.hand&&p.hand.id,b:!!p.body,sw:p.sw>0?1:0,sa:p.sa|0,dead:G.dead?1:0});
+  const e=[...dirt].filter(e=>!M[e.t]).map(e=>e.dead?{i:e.i,dead:1}:e);dirt.clear();if(e.length)send({t:'ent',e});
+  if(NET.host)send({t:'mob',time:G.time,hw:G.hw>0?1:0,m:G.ents.filter(e=>M[e.t]&&!e.dead).map(e=>[e.i,e.t,e.x|0,e.y|0,e.face,+e.walk.toFixed(1),e.hp,e.atk>0?.25:0,e.fl>0?.15:0])});
+}
 
 // ---------- drawing ----------
 const pat=(()=>{const c=document.createElement('canvas');c.width=c.height=192;const g=c.getContext('2d'),r=mulberry(7);
@@ -449,10 +518,11 @@ function drawEnt(e){
   }
   if(e.fl>0){ctx.globalAlpha=.45;C(x,y-14,17,'#ff2a1a',0);ctx.globalAlpha=1}
 }
-function drawPlayer(){
-  const p=G.p,x=p.x,y=p.y,f=p.face,w=p.walk,mv=p.mv;S(x,y,12);
+const COL=['#6e2b26','#2b4f6e','#3d6e2b','#6e5a2b'];
+function drawPlayer(p){
+  const x=p.x,y=p.y,f=p.face,w=p.walk,mv=p.mv;S(x,y,12);
   ctx.lineWidth=4.5;ctx.beginPath();ctx.moveTo(x-4,y-14);ctx.lineTo(x-4+Math.sin(w)*5*mv,y);ctx.moveTo(x+4,y-14);ctx.lineTo(x+4-Math.sin(w)*5*mv,y);ctx.stroke();ctx.lineWidth=LW;
-  P([x-9,y-13,x+9,y-13,x+7,y-33,x-7,y-33],p.body?'#8b6a43':'#6e2b26');
+  P([x-9,y-13,x+9,y-13,x+7,y-33,x-7,y-33],p.body?'#8b6a43':COL[p.peer?(p.id-1)%4:NET?(NET.id-1)%4:0]);
   if(p.body){ctx.beginPath();ctx.moveTo(x-8,y-20);ctx.lineTo(x+8,y-20);ctx.moveTo(x-7,y-27);ctx.lineTo(x+7,y-27);ctx.stroke()}
   C(x,y-43,11,'#efe3c9');
   P([x-12,y-44,x-14,y-54,x-7,y-51,x-6,y-62,x,y-53,x+5,y-63,x+7,y-52,x+14,y-56,x+12,y-44,x,y-49],'#16110d');
@@ -470,9 +540,9 @@ function render(){
   ctx.imageSmoothingEnabled=true;if(i1>i0&&j1>j0)ctx.drawImage(mini,i0,j0,i1-i0,j1-j0,i0*T,j0*T,(i1-i0)*T,(j1-j0)*T);
   ctx.fillStyle=pat;ctx.fillRect(x0,y0,vw,vh);
   const vis=[];for(const e of G.ents)if(e.x>x0-80&&e.x<x0+vw+80&&e.y>y0-30&&e.y<y0+vh+110)vis.push(e);
-  vis.push(p);vis.sort((a,b)=>a.y-b.y);
+  vis.push(p);for(const q of Object.values(PE))if(!q.dead)vis.push(q);vis.sort((a,b)=>a.y-b.y);
   ctx.strokeStyle=OUT;ctx.lineWidth=LW;ctx.lineJoin=ctx.lineCap='round';
-  for(const e of vis)e===p?drawPlayer():drawEnt(e);
+  for(const e of vis)e===p||e.peer?drawPlayer(e):drawEnt(e);
   if(goal){ctx.globalAlpha=.5;ctx.strokeStyle='#fff';ctx.setLineDash([4,5]);ctx.beginPath();ctx.ellipse(goal.x,goal.y,18,7,0,0,6.2832);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;ctx.strokeStyle=OUT}
   // light & darkness
   const dk=darkAt(phase());ctx.setTransform(1,0,0,1,0,0);
@@ -506,7 +576,8 @@ function renderInv(){
   invDirty=false;
 }
 function stat(id,f,v){const el=$(id);el.style.setProperty('--p',(f*100).toFixed(1));el.querySelector('b').textContent=Math.ceil(v);el.classList.toggle('low',f<.25)}
-function hud(){const p=G.p;stat('shp',p.hp/150,p.hp);stat('shu',p.hu/150,p.hu);stat('ssa',p.sa/200,p.sa);$('hand').style.transform=`rotate(${phase()*360}deg)`;$('day').textContent=dayNo()}
+function hud(){const p=G.p;stat('shp',p.hp/150,p.hp);stat('shu',p.hu/150,p.hu);stat('ssa',p.sa/200,p.sa);$('hand').style.transform=`rotate(${phase()*360}deg)`;$('day').textContent=dayNo();
+  $('room').textContent=NET?`Oda ${NET.code} · ${1+Object.values(PE).length} kişi`:''}
 function renderCraft(){
   const sci=nearSci();
   $('clist').innerHTML=RECIPES.map(([id,req,s],k)=>{const ok=Object.keys(req).every(r=>count(r)>=req[r])&&(!s||sci);
@@ -524,7 +595,7 @@ function openPop(el){
     if(it.food)acts.push(['Ye',()=>eat(i)]);
     if(it.tool)acts.push(['Kuşan',()=>equip(i)]);
     if(it.cook&&lit)acts.push(['Pişir',()=>{take1(i);if(give(it.cook,1))drop(it.cook,1,p.x,p.y)}]);
-    if(it.fuel&&pit)acts.push(['Ateşe at',()=>{pit.fuel=Math.min(pit.max,pit.fuel+it.fuel);take1(i)}]);
+    if(it.fuel&&pit)acts.push(['Ateşe at',()=>{pit.fuel=Math.min(pit.max,pit.fuel+it.fuel);dirty(pit);take1(i)}]);
     acts.push(['Yere bırak',()=>{drop(s.id,s.n,p.x,p.y,s.d);p.inv[i]=null;invDirty=true}]);
   }
   const f=it.food,desc=f?`🍖${f[0]>=0?'+':''}${f[0]} ❤️${f[1]>=0?'+':''}${f[1]} 🧠${f[2]>=0?'+':''}${f[2]}`:it.d||(it.fuel?`Yakıt +${it.fuel} sn`:'');
@@ -553,8 +624,14 @@ addEventListener('visibilitychange',()=>{if(document.hidden)save()});addEventLis
 function showMenu(msg,dead){
   const saved=!dead&&localStorage.getItem(KEY);
   $('mtext').innerHTML=msg||'';
-  const btns=[];if(saved)btns.push(['Devam Et',()=>{G=JSON.parse(saved);genBiomes(G.seed);start()}]);
+  const btns=[];
+  if(NET)btns.push(['Yeniden Doğ',()=>{const a=Object.values(PE).find(q=>!q.dead)||G.p;G.p=newP(a.x,a.y);G.dead=0;start()}],['Odadan Çık',()=>leaveCoop()]);
+  else{
+  if(saved)btns.push(['Devam Et',()=>{G=JSON.parse(saved);genBiomes(G.seed);start()}]);
   btns.push([dead?'Yeniden Dene':'Yeni Dünya',()=>{newGame(Math.random()*1e9|0);start()}]);
+  btns.push(['Oda Kur (2-4 kişi)',()=>coop(Array.from({length:4},()=>'ABCDEFGHJKLMNPRSTUVYZ'[rnd()*21|0]).join(''),1)],
+    ['Odaya Katıl',()=>{const c=(prompt('Oda kodu:')||'').trim().toUpperCase();if(ROOM.test(c))coop(c,0)}]);
+  }
   $('mbtns').innerHTML=btns.map((b,k)=>`<button data-k="${k}">${b[0]}</button>`).join('');
   $('mbtns').onclick=e=>{const b=e.target.closest('button');if(b)btns[+b.dataset.k][1]()};
   $('menu').classList.remove('off');
@@ -564,13 +641,15 @@ let last=0;
 function frame(t){
   requestAnimationFrame(frame);const dt=Math.min(.05,(t-last)/1000||0);last=t;
   if(!G)return;
-  if(!G.dead&&$('menu').classList.contains('off'))update(dt);
+  if(NET||!G.dead&&$('menu').classList.contains('off'))update(dt);
+  if(NET&&(netT+=dt)>.1){netT=0;netTick()}
   render();
   if(invDirty)renderInv();
   if((hudT+=dt)>.2){hudT=0;hud()}
 }
 let best=0;try{best=+localStorage.getItem(BEST)||0}catch{}
 showMenu(best?`En iyi: ${best} gün`:'');
+if(ROOM.test(location.hash.slice(1).toUpperCase()))coop(location.hash.slice(1).toUpperCase(),0);
 requestAnimationFrame(frame);
 </script>
 </body>

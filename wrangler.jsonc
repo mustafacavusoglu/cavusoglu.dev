@@ -1,7 +1,16 @@
-// cavusoglu.dev on Cloudflare: static files only (Next.js `output: "export"` → out/).
+// cavusoglu.dev on Cloudflare: static files (Next.js `output: "export"` → out/) plus a tiny Worker
+// that only handles /api/* (Hayatta Kal co-op rooms, one Durable Object per room code).
 // Workers Builds: build `npm run build`, deploy `npx wrangler deploy` on every push to main.
 {
   "name": "cavusoglu-dev",
+  "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./out", "not_found_handling": "404-page" }
+  "assets": {
+    "directory": "./out",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
 }
