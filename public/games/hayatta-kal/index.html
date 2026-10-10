@@ -154,7 +154,7 @@ const $=id=>document.getElementById(id);
 const cv=$('c'),mctx=cv.getContext('2d'),lc=document.createElement('canvas'),lx=lc.getContext('2d');
 let ctx=mctx,NOW=0;
 const KEY='hayattakal-v2',BEST='hayattakal-best';
-const T=64,W=90,WORLD=W*T,DAY=300,D1=9/16,D2=12/16,OUT='#120d09',LW=2.4,FONT='"Patrick Hand",sans-serif';
+const T=64,W=90,WORLD=W*T,DAY=300,D1=10/16,D2=14/16,OUT='#120d09',LW=2.4,FONT='"Patrick Hand",sans-serif';
 const clamp=(v,a,b)=>v<a?a:v>b?b:v,dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),rnd=Math.random;
 const setHTML=(el,h)=>{if(el._h!==h){el._h=h;el.innerHTML=h}};
 
@@ -172,12 +172,12 @@ const I={
   salve:{n:'Merhem',heal:20,d:'Yaraları sarar: +20 sağlık'},
   grassp:{n:'Ot Tutamı',plant:'grass',d:'Üssüne dik'},saplingp:{n:'Fidan',plant:'sapling',d:'Üssüne dik'},berryp:{n:'Böğürtlen Çalısı',plant:'berry',d:'Üssüne dik'},
   trap:{n:'Tuzak',dur:8,plant:'trap',d:'Tavşan yakalar. Deliğin yanına kur.'},
-  axe:{n:'Balta',slot:'hand',dur:60,dmg:27,d:'Ağaç keser'},pickaxe:{n:'Kazma',slot:'hand',dur:50,dmg:27,d:'Kaya kırar'},
-  shovel:{n:'Kürek',slot:'hand',dur:25,dmg:17,d:'Kök söker, bitkileri kazar'},spear:{n:'Mızrak',slot:'hand',dur:100,dmg:34,d:'Sivri uçlu bir silah'},
+  axe:{n:'Balta',slot:'hand',dur:100,dmg:27,d:'Ağaç keser'},pickaxe:{n:'Kazma',slot:'hand',dur:33,dmg:27,d:'Kaya kırar'},
+  shovel:{n:'Kürek',slot:'hand',dur:25,dmg:17,d:'Kök söker, bitkileri kazar'},spear:{n:'Mızrak',slot:'hand',dur:150,dmg:34,d:'Sivri uçlu bir silah'},
   torch:{n:'Meşale',slot:'hand',dur:90,dmg:17,timed:1,d:'Taşınabilir ışık'},
   armor:{n:'Odun Zırh',slot:'body',dur:315,absorb:.8,d:'Hasarın %80ini emer'},
   helmet:{n:'Futbol Kaskı',slot:'head',dur:450,absorb:.8,d:'Kafanı korur (%80)'},
-  garland:{n:'Çiçek Çelengi',slot:'head',dur:DAY*6,timed:1,san:.05,d:'Akla iyi gelir'},
+  garland:{n:'Çiçek Çelengi',slot:'head',dur:DAY*6,timed:1,san:.035,d:'Akla iyi gelir'},
   tophat:{n:'Silindir Şapka',slot:'head',dur:DAY*8,timed:1,san:.09,d:'Çok şık. Akla çok iyi gelir'},
   fire:{n:'Kamp Ateşi',d:'Işık ve pişirme. Yakıtı bitince söner.'},pit:{n:'Taş Ocak',d:'Sönse de yerinde kalır, tekrar yakılır.'},
   sci:{n:'Bilim Makinesi',d:'Yanındayken yeni tarifler öğrenirsin'},chest:{n:'Sandık',d:'9 yığın eşya saklar'},
@@ -197,9 +197,10 @@ const PLACE={fire:{fuel:90,max:180},pit:{fuel:120,max:240},sci:{},chest:{}};
 const NAME={tree:'Çam Ağacı',stump:'Ağaç Kökü',sapling:'Fidan',grass:'Ot',berry:'Böğürtlen Çalısı',boulder:'Kaya',flint:'Çakmaktaşı',carrot:'Havuç',flower:'Çiçek',
   chest:'Sandık',trap:'Tuzak',pig:'Domuz Adam',phouse:'Domuz Evi',hole:'Tavşan Deliği',den:'Örümcek Yuvası',fire:'Kamp Ateşi',pit:'Taş Ocak',sci:'Bilim Makinesi',
   rabbit:'Tavşan',spider:'Örümcek',hound:'Tazı',shadow:'Kabus'};
-const M={rabbit:{hp:25,spd:175,r:8},spider:{hp:100,spd:150,dmg:20,cd:3,reach:34,r:12,kill:'Örümcek',host:1},
-  hound:{hp:150,spd:215,dmg:20,cd:2,reach:36,r:14,kill:'Tazı',host:1},shadow:{hp:80,spd:150,dmg:20,cd:2.5,reach:40,r:14,kill:'Kabus',host:1},
-  pig:{hp:250,spd:180,dmg:33,cd:3,reach:38,r:12,kill:'Domuz Adam'}};
+// speeds: DST run speeds scaled so Wilson's 6 units/s = 200px/s
+const M={rabbit:{hp:25,spd:167,r:8},spider:{hp:100,spd:167,dmg:20,cd:3,reach:34,r:12,kill:'Örümcek',host:1},
+  hound:{hp:150,spd:333,dmg:20,cd:2,reach:36,r:14,lunge:1,kill:'Tazı',host:1},shadow:{hp:300,spd:100,dmg:20,cd:2.5,reach:40,r:14,kill:'Kabus',host:1},
+  pig:{hp:250,spd:167,dmg:33,cd:3,reach:38,r:12,kill:'Domuz Adam'}};
 const SOLID={tree:13,boulder:18,den:26,sci:18,pit:22,fire:12,berry:10,phouse:24,chest:14};
 const TOOL={tree:'axe',boulder:'pickaxe',stump:'shovel'};
 
@@ -226,7 +227,7 @@ const bioAt=(x,y)=>x<0||y<0||x>=WORLD||y>=WORLD?0:bio[(y/T|0)*W+(x/T|0)];
 const land=(x,y)=>bioAt(x,y)!==0;
 function ent(t,x,y,R=rnd){
   const e={i:uid(),t,x:Math.round(x),y:Math.round(y),s:Math.round((.88+R()*.3)*100)/100};
-  if(t==='tree'){const r=R();e.st=r<.25?0:r<.7?1:2;e.hp=[3,5,7][e.st];e.gt=DAY*(2+R()*2)}
+  if(t==='tree'){const r=R();e.st=r<.25?0:r<.7?1:2;e.hp=[5,10,15][e.st];e.gt=DAY*(2+R()*2)}
   if(t==='boulder'){e.hp=6;e.gold=R()<.25?1:0}
   if(t==='flower')e.c=R()*5|0;
   return e;
@@ -366,7 +367,7 @@ function gather(e){
     case'item':{const l=give(e.id,e.n,e.d,e.p);if(l)e.n=l;else kill0(e);sfx('pick');break}
     case'sapling':case'grass':case'berry':
       if(h==='shovel'){wear('hand',1);kill0(e);const pid=e.t+'p';if(give(pid,1))loot(pid,1,e);sfx('dig');break}
-      if(e.t==='berry'){loot('berries',give('berries',2),e);e.rg=DAY*2}else{const id=e.t==='grass'?'grass':'twigs';if(give(id,1))loot(id,1,e);e.rg=DAY*1.5}
+      if(e.t==='berry'){loot('berries',give('berries',2),e);e.rg=DAY*3}else{const id=e.t==='grass'?'grass':'twigs';if(give(id,1))loot(id,1,e);e.rg=DAY*(e.t==='grass'?3:4)}
       sfx('pick');break;
     case'flower':if(give('petals',1))loot('petals',1,e);p.sa=Math.min(200,p.sa+5);e.rg=DAY*2;sfx('pick');break;
     case'carrot':case'flint':if(give(e.t,1))loot(e.t,1,e);kill0(e);sfx('pick');break;
@@ -402,7 +403,7 @@ function killMob(e,src){
     case'spider':{const r=rnd();loot(r<.5?'mmeat':r<.75?'silk':'gland',1,e);break}
     case'hound':loot('mmeat',1,e);break;
     case'pig':{loot('meat',1,e);if(rnd()<.5)loot('pigskin',1,e);const h=byId(e.home);if(h){h.out=0;h.cd=DAY*2}break}
-    case'shadow':if(src===G.p){G.p.sa=Math.min(200,G.p.sa+15);say('Hayal miydi o?')}break;
+    case'shadow':if(src===G.p){G.p.sa=Math.min(200,G.p.sa+33);say('Hayal miydi o?')}break;
     case'den':loot('silk',3,e);loot('gland',1,e);say('Yuvayı yok ettim!');break;
   }
 }
@@ -473,7 +474,8 @@ function updMob(e,dt){
   let vx=0,vy=0;
   if(e.tg){
     const t=e.tg,dx=t.x-e.x,dy=t.y-e.y,d=Math.hypot(dx,dy)||1;
-    if(e.wind>0){e.wind-=dt;if(e.wind<=0){if(d<=m.reach+14)damage(t,m.dmg,e);e.cd=m.cd;e.atk=.2}}
+    if(e.wind>0){e.wind-=dt;if(m.lunge&&d>m.reach*.6){vx=dx/d;vy=dy/d}// hounds leap while winding up; spiders and pigs stand still, so they can be kited
+      if(e.wind<=0){if(d<=m.reach+14)damage(t,m.dmg,e);e.cd=m.cd-.45;e.atk=.2}}
     else if(d>m.reach){vx=dx/d;vy=dy/d}
     else if(e.cd<=0){e.wind=.45;if(e.t!=='pig')sfx('snarl')}
   }else if(flee){const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy)||1;vx=dx/d;vy=dy/d}
@@ -521,14 +523,14 @@ function update(dt){
   if(!G.dead){
   // hunger
   p.hu-=dt*150/(DAY*2);
-  if(p.hu<=0){p.hu=0;p.hp-=dt;say('Açlıktan ölüyorum!');if(p.hp<=0)die('Açlık')}
+  if(p.hu<=0){p.hu=0;p.hp-=dt*1.25;say('Açlıktan ölüyorum!');if(p.hp<=0)die('Açlık')}
   // sanity
   let ds=seg===2?-.1:seg===1?-.05:0;
   if(p.head&&I[p.head.id].san)ds+=I[p.head.id].san;
   const safe=dk<.8||FR.lights.some(L=>Math.hypot(L.x-p.x,L.y-p.y)<L.r*.75);
   if(!safe){ds-=.4;charlie+=dt;
     if(charlie>1.5&&charlie-dt<=1.5){say('Karanlık! Çok karanlık!');sfx('whisper')}
-    if(charlie>4){hurt(40,'Karanlık');charlie=2.5;sfx('charlie')}}
+    if(charlie>4){hurt(100,'Karanlık');charlie=2.5;sfx('charlie')}}
   else charlie=0;
   if(G.ents.some(e=>M[e.t]&&M[e.t].host&&!e.dead&&Math.abs(e.x-p.x)<250&&Math.abs(e.y-p.y)<250))ds-=.12;
   p.sa=clamp(p.sa+ds*dt,0,200);p.dsan=ds;
@@ -556,7 +558,7 @@ function slow(){
   SCI=G.ents.some(e=>e.t==='sci'&&dist(e,p)<260);
   for(const e of G.ents){
     if(e.rg>0&&(e.rg-=1)<=0)e.rg=0;
-    if(e.t==='tree'&&e.st<2&&(e.gt-=1)<=0){e.st++;e.hp=[3,5,7][e.st];e.gt=DAY*(2+rnd()*2)}
+    if(e.t==='tree'&&e.st<2&&(e.gt-=1)<=0){e.st++;e.hp=[5,10,15][e.st];e.gt=DAY*(2+rnd()*2)}
     else if(e.t==='fire'||e.t==='pit'){if(e.fuel>0)e.fuel=Math.max(0,e.fuel-1);if(e.t==='fire'&&e.fuel<=0){kill0(e);if(host)drop('ash',1,e.x,e.y)}}
     else if(!host&&(e.t==='den'||e.t==='hole'||e.t==='phouse'))continue;
     else if(e.t==='den'){e.sp=(e.sp||0)-1;const d=dist(e,nearestPlayer(e)),n=kids(e);
@@ -854,7 +856,8 @@ function render(){
   const hl=goal||hov;
   if(hl&&!hl.dead){ctx.globalAlpha=.55;ctx.strokeStyle='#fff6d0';ctx.setLineDash([5,5]);ctx.beginPath();ctx.ellipse(hl.x,hl.y,20,8,0,0,6.2832);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;ctx.strokeStyle=OUT}
   for(const e of vis)e===p||e.peer?drawPlayer(e):drawEnt(e);
-  if(hov&&!hov.dead&&!goal){const v=verb(hov);if(v){const H=hov.t==='tree'?[30,55,80,105][hov.st+1]:HGT[hov.t]||34,nm=hov.t==='item'?I[hov.id].n+(hov.n>1?' x'+hov.n:''):NAME[hov.t];text(nm,hov.x,hov.y-H-16,18);text(v,hov.x,hov.y-H+1,15,'#f6dc8c')}}
+  if(hov&&!hov.dead&&!goal){const v=verb(hov);if(v){const H=hov.t==='tree'?[30,55,80,105][hov.st+1]:HGT[hov.t]||34,nm=hov.t==='item'?I[hov.id].n+(hov.n>1?' x'+hov.n:''):NAME[hov.t];// under the target while the player is talking right next to it, so the two texts never overlap
+    const ly=p.sayT>0&&Math.abs(hov.x-p.x)<140&&hov.y<p.y+40?hov.y+24:hov.y-H-16;text(nm,hov.x,ly,18);text(v,hov.x,ly+17,15,'#f6dc8c')}}
   // light & darkness
   const dk=darkAt(phase());ctx.setTransform(1,0,0,1,0,0);
   if(dk>0){
