@@ -18,6 +18,12 @@ const games = [
     desc: "3D space shooter with levels, a hangar and ship upgrades.",
     tag: "Touch · mouse · keys",
   },
+  {
+    slug: "hayatta-kal",
+    name: "Hayatta Kal",
+    desc: "Wilderness survival: gather, craft, keep the fire burning through the night.",
+    tag: "Mobile · touch · keys",
+  },
 ]
 
 /** Screenshot cards; each opens the game. Progress is saved in the player's browser. */
