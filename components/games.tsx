@@ -22,7 +22,7 @@ const games = [
     slug: "hayatta-kal",
     name: "Hayatta Kal",
     desc: "Wilderness survival: gather, craft, keep the fire burning through the night. Solo or 2-4 player co-op.",
-    tag: "Mobile · touch · keys",
+    tag: "Landscape · touch · keys",
   },
 ]
 
