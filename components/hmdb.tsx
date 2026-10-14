@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Pencil } from "lucide-react"
 
 const USERS = ["Hilal", "Mustafa"] as const
 type User = (typeof USERS)[number]
@@ -194,14 +195,16 @@ function Detail({ film, user, onRate, onRemove }: { film: Film; user: User; onRa
             <li key={u} className="rounded-lg border border-line-soft p-3">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-medium">{u}</span>
-                <span className="font-mono text-sm text-muted">{r ? `${r.score}/10` : "henüz puan yok"}</span>
+                <span className="flex items-center gap-2 font-mono text-sm text-muted">
+                  {r ? `${r.score}/10` : "henüz puan yok"}
+                  {u === user && !editing && (
+                    <button onClick={() => setEditing(true)} aria-label="Düzenle" title="Düzenle" className="-m-1.5 rounded-md p-1.5 hover:bg-code hover:text-ink">
+                      <Pencil size={15} />
+                    </button>
+                  )}
+                </span>
               </div>
-              {r?.comment && <p className="mt-1 text-sm text-body">{r.comment}</p>}
-              {u === user && !editing && (
-                <button onClick={() => setEditing(true)} className="mt-2 text-sm text-accent hover:text-accent-hover">
-                  Düzenle
-                </button>
-              )}
+              {r?.comment && !(u === user && editing) && <p className="mt-1 text-sm text-body">{r.comment}</p>}
               {u === user && editing && (
                 <form
                   onSubmit={(e) => {
@@ -233,7 +236,14 @@ function Detail({ film, user, onRate, onRemove }: { film: Film; user: User; onRa
                   />
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs text-muted">{comment.length}/200</span>
-                    <button className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-hover">Kaydet</button>
+                    <span className="flex items-center gap-3">
+                      {mine && (
+                        <button type="button" onClick={() => (setScore(mine.score), setComment(mine.comment), setEditing(false))} className="text-sm text-muted hover:text-ink">
+                          Vazgeç
+                        </button>
+                      )}
+                      <button className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-hover">Kaydet</button>
+                    </span>
                   </div>
                 </form>
               )}
