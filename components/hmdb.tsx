@@ -21,6 +21,7 @@ export function Hmdb() {
   const [q, setQ] = useState("")
   const [hits, setHits] = useState<Hit[]>([])
   const [error, setError] = useState("")
+  const [me, setMe] = useState<User | null>(null) // asked on every visit, never remembered
 
   const run = (p: Promise<Film[]>) => p.then(setFilms).catch((e) => setError(String(e.message ?? e)))
 
@@ -40,8 +41,28 @@ export function Hmdb() {
     run(api("/add", { id }))
   }
 
+  if (!me)
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-white px-6">
+        <h2 className="text-[28px] font-semibold tracking-tight">Kimsin?</h2>
+        <div className="flex w-full max-w-sm flex-col gap-3 sm:flex-row">
+          {USERS.map((u) => (
+            <button key={u} onClick={() => setMe(u)} className="flex-1 rounded-xl border border-line py-6 text-xl font-medium hover:border-ink hover:bg-ink hover:text-white">
+              {u}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+
   return (
     <div>
+      <p className="-mt-5 mb-6 text-sm text-muted">
+        <span className="font-medium text-ink">{me}</span> olarak ·{" "}
+        <button onClick={() => setMe(null)} className="underline hover:text-ink">
+          değiştir
+        </button>
+      </p>
       <div className="relative mb-10">
         <input
           type="search"
@@ -76,26 +97,19 @@ export function Hmdb() {
 
       <div className="flex flex-col gap-8">
         {films?.map((f) => (
-          <FilmCard key={f.id} film={f} onRate={(r) => run(api("/rate", { id: f.id, ...r }))} onRemove={() => confirm(`"${f.title}" silinsin mi?`) && run(api("/remove", { id: f.id }))} />
+          <FilmCard key={f.id} film={f} user={me} onRate={(r) => run(api("/rate", { id: f.id, ...r }))} onRemove={() => confirm(`"${f.title}" silinsin mi?`) && run(api("/remove", { id: f.id }))} />
         ))}
       </div>
     </div>
   )
 }
 
-function FilmCard({ film, onRate, onRemove }: { film: Film; onRate: (r: { user: User; score: number; comment: string }) => void; onRemove: () => void }) {
-  const [user, setUser] = useState<User>("Mustafa")
-  const [score, setScore] = useState(film.ratings.Mustafa?.score ?? 8)
-  const [comment, setComment] = useState(film.ratings.Mustafa?.comment ?? "")
+function FilmCard({ film, user, onRate, onRemove }: { film: Film; user: User; onRate: (r: { user: User; score: number; comment: string }) => void; onRemove: () => void }) {
+  // Starts from what this person already gave, so saving again edits it.
+  const [score, setScore] = useState(film.ratings[user]?.score ?? 8)
+  const [comment, setComment] = useState(film.ratings[user]?.comment ?? "")
   const rated = USERS.filter((u) => film.ratings[u])
   const avg = rated.length ? rated.reduce((s, u) => s + film.ratings[u]!.score, 0) / rated.length : null
-
-  // Picking a person loads what they already gave, so saving again edits it.
-  const pick = (u: User) => {
-    setUser(u)
-    setScore(film.ratings[u]?.score ?? 8)
-    setComment(film.ratings[u]?.comment ?? "")
-  }
 
   return (
     <article className="flex gap-4 border-t border-line-soft pt-8 first:border-0 first:pt-0 sm:gap-6">
@@ -150,18 +164,7 @@ function FilmCard({ film, onRate, onRemove }: { film: Film; onRate: (r: { user: 
           }}
           className="mt-4 flex flex-col gap-2 rounded-lg border border-line-soft p-3"
         >
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {USERS.map((u) => (
-              <button
-                type="button"
-                key={u}
-                onClick={() => pick(u)}
-                className={`rounded-md border px-3 py-1 ${u === user ? "border-ink bg-ink text-white" : "border-line text-body"}`}
-              >
-                {u}
-              </button>
-            ))}
-          </div>
+          <span className="text-sm font-medium">{user}</span>
           <label className="flex items-center gap-3">
             <input
               type="range"
