@@ -143,10 +143,10 @@ async function hmdb(req, env, path) {
     return json(await db.add({ ...film, imdb: await imdbRating(b.id) }));
   }
   if (path === "/rate") {
-    const score = Number(b.score);
+    const score = Math.round(Number(b.score) * 10) / 10; // one decimal: 1.0 … 10.0
     const comment = typeof b.comment === "string" ? b.comment.trim() : "";
     if (!USERS.includes(b.user)) return bad("bad user");
-    if (!Number.isInteger(score) || score < 1 || score > 10) return bad("score must be 1-10");
+    if (!(score >= 1 && score <= 10)) return bad("score must be 1-10");
     if (comment.length > 200) return bad("comment max 200");
     return json(await db.rate(b.id, b.user, { score, comment, at: Date.now() }));
   }

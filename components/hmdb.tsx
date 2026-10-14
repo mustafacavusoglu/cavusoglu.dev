@@ -161,14 +161,20 @@ function FilmCard({ film, onRate, onRemove }: { film: Film; onRate: (r: { user: 
                 {u}
               </button>
             ))}
-            <select value={score} onChange={(e) => setScore(Number(e.target.value))} className="rounded-md border border-line px-2 py-1 font-mono" aria-label="Puan">
-              {Array.from({ length: 10 }, (_, i) => 10 - i).map((n) => (
-                <option key={n} value={n}>
-                  {n}/10
-                </option>
-              ))}
-            </select>
           </div>
+          <label className="flex items-center gap-3">
+            <input
+              type="range"
+              min={1}
+              max={10}
+              step={0.1}
+              value={score}
+              onChange={(e) => setScore(Number(e.target.value))}
+              className="flex-1 accent-ink"
+              aria-label="Puan"
+            />
+            <span className="w-14 text-right font-mono text-sm font-semibold">{score.toFixed(1)}/10</span>
+          </label>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
