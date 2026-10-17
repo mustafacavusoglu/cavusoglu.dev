@@ -31,8 +31,7 @@ section{flex:1;min-height:0;display:flex;flex-direction:column}
 /* start + end */
 h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
 .lead{color:var(--body);margin:0 0 26px;max-width:340px}
-.demo{font:500 30px/1.2 "IBM Plex Mono",monospace;letter-spacing:.08em;margin-bottom:6px}
-.demo span{color:var(--accent)}
+.demo{font-size:24px!important;margin:0 0 10px!important}
 .rules{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
 .rules div{background:var(--soft);border-radius:14px;padding:14px 6px}
 .rules b{display:block;font-size:22px;font-weight:600}
@@ -52,10 +51,12 @@ h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
 .track{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin:0 6px}
 .track i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
 .tag{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
-#puzzle{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 20px;margin:14px 0 16px;font:500 clamp(26px,8.4vw,38px)/1.2 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.07em}
-#puzzle .w{white-space:nowrap}
-#puzzle .v{color:var(--accent)}
-#puzzle .x{color:var(--bad)}
+.pz{display:flex;flex-wrap:wrap;justify-content:center;gap:16px 20px;margin:16px 0 18px;font:500 clamp(22px,7vw,34px)/1 "IBM Plex Mono",ui-monospace,monospace}
+.pz .w{display:inline-flex;align-items:flex-end;gap:.14em;white-space:nowrap}
+.pz i{font-style:normal;display:inline-block;width:.8em;height:1.15em;padding-bottom:.1em;text-align:center;border-bottom:.08em solid var(--muted)}
+.pz i.p{width:auto;border:0}
+.pz .v{color:var(--accent)}
+.pz .x{color:var(--bad)}
 .hearts{display:flex;gap:6px;justify-content:center}
 .hearts i{width:9px;height:9px;border-radius:50%;background:var(--ink);transition:background .2s}
 .hearts i.off{background:var(--line)}
@@ -87,7 +88,7 @@ h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
   .key:hover{filter:brightness(.96)}
   :root.dark .key:hover{filter:brightness(1.2)}
 }
-@media (max-height:640px){.key{height:46px}#answer{margin-top:14px}#puzzle{margin:8px 0 10px}}
+@media (max-height:640px){.key{height:46px}#answer{margin-top:14px}#puzzle{margin:8px 0 12px}}
 
 .btn.ghost{background:var(--soft);color:var(--ink)}
 .btn:disabled{opacity:.4}
@@ -129,7 +130,7 @@ h2{font-size:26px;font-weight:600;letter-spacing:-.02em;margin:0 0 20px}
 
   <section id="start">
     <div class="stage">
-      <div class="demo">TH GDF<span>A</span>THR</div>
+      <div class="pz demo" id="demo"></div>
       <p class="tag" style="margin:0 0 28px">The Godfather · 1972</p>
       <h1>Sesli harfler gitti.</h1>
       <p class="lead">IMDb Top 250'den filmler, sadece sessiz harfleriyle. Kalanlardan filmi bul.</p>
@@ -186,7 +187,7 @@ h2{font-size:26px;font-weight:600;letter-spacing:-.02em;margin:0 0 20px}
     <div class="board" id="board" hidden></div>
     <div class="stage">
       <div class="tag" id="tag"></div>
-      <div id="puzzle"></div>
+      <div class="pz" id="puzzle"></div>
       <div class="hearts" id="hearts" aria-label="Kalan hak"></div>
       <div id="answer" aria-live="polite"></div>
       <p id="msg" aria-live="polite"></p>
@@ -487,15 +488,8 @@ function load(f) {
 
 function render() {
   const s = cur
-  let html = '<span class="w">'
-  s.chars.forEach((c, i) => {
-    if (c === ' ') html += '</span><span class="w">'
-    else if (!isVowel(c)) html += c
-    else if (s.shown.has(i)) html += `<span class="v">${c}</span>`
-    else if (s.done) html += `<span class="${s.won ? 'v' : 'x'}">${c}</span>`
-  })
-  $('puzzle').innerHTML = html + '</span>'
-  $('tag').textContent = `${s.f.y} · ${s.f.t.split(' ').length} kelime`
+  $('puzzle').innerHTML = slots(s.chars, i => s.shown.has(i) ? 'v' : s.done ? (s.won ? 'v' : 'x') : '')
+  $('tag').textContent = `${s.f.y} · ${s.chars.filter(isChar).length} harf`
   $('pos').textContent = `${(NET ? S.idx : idx) + 1}/${ROUND}`
   $('score').textContent = `${NET ? S.players[NET.id]?.score ?? 0 : total} puan`
   $('board').hidden = !NET
@@ -509,6 +503,15 @@ function render() {
   const left = s.hints - s.used
   $('hint').innerHTML = `Harf al<small>${left} hak</small>`
   $('hint').disabled = left <= 0
+}
+
+// Every letter sits on its own underline so the length shows; vowels stay blank until revealed.
+const isChar = c => /[\p{L}\p{N}]/u.test(c)
+function slots(chars, vowel) {
+  return '<span class="w">' + chars.map((c, i) => c === ' ' ? '</span><span class="w">'
+    : !isChar(c) ? `<i class="p">${esc(c)}</i>`
+    : !isVowel(c) ? `<i>${c}</i>`
+    : `<i class="${vowel(i)}">${vowel(i) ? c : ''}</i>`).join('') + '</span>'
 }
 
 function setTyped(t) { typed = t.slice(0, 60); $('answer').textContent = typed }
@@ -777,6 +780,7 @@ $('share').onclick = async () => {
 
 const best = store.get('sf-best', 0)
 if (best) $('best').textContent = `Tek başına en iyi skorun ${best} / ${ROUND * 100}`
+$('demo').innerHTML = slots([...'THE GODFATHER'], i => i === 8 ? 'v' : '')
 $('go').onclick = start
 $('mk').onclick = () => online(true)
 $('jn').onclick = () => online(false)
