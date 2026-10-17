@@ -88,6 +88,35 @@ h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
   :root.dark .key:hover{filter:brightness(1.2)}
 }
 @media (max-height:640px){.key{height:46px}#answer{margin-top:14px}#puzzle{margin:8px 0 10px}}
+
+.btn.ghost{background:var(--soft);color:var(--ink)}
+.btn:disabled{opacity:.4}
+.pair{display:flex;gap:8px;margin-top:8px}
+.pair .btn{height:50px;font-size:16px}
+.note{color:var(--bad)!important}
+.link{display:block;margin:12px auto 0;color:var(--muted);font-size:14px;padding:4px 10px}
+.link:hover{color:var(--ink)}
+h2{font-size:26px;font-weight:600;letter-spacing:-.02em;margin:0 0 20px}
+.field{width:100%;text-align:left;margin-bottom:14px}
+.field span{display:block;font-size:13px;color:var(--muted);margin:0 0 6px 2px}
+.field input{width:100%;height:52px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font:500 17px "IBM Plex Sans",sans-serif;outline:none}
+.field input:focus{border-color:var(--accent);background:var(--bg)}
+#jcode{font-family:"IBM Plex Mono",monospace;letter-spacing:.3em;text-transform:uppercase}
+.code{font:500 46px/1 "IBM Plex Mono",monospace;letter-spacing:.18em;margin:6px 0 12px;padding-left:.18em}
+.share{height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--line);font-size:14px;color:var(--body)}
+#players{list-style:none;padding:0;margin:26px 0 0;width:100%;text-align:left}
+#players li{display:flex;justify-content:space-between;align-items:center;padding:12px 6px;border-bottom:1px solid var(--line)}
+#players li:first-child{border-top:1px solid var(--line)}
+#players small{color:var(--muted);font-size:12px}
+#players li.empty{color:var(--line)}
+.timer{font-weight:600;min-width:28px;text-align:right}
+.timer.low,.track.low i{color:var(--bad);background:var(--bad)}
+.timer.low{background:none}
+.board{display:flex;flex-wrap:wrap;gap:6px;padding:10px 4px 0}
+.board span{font-size:12px;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--body)}
+.board span.me{background:var(--ink);color:var(--bg)}
+#wait{text-align:center;color:var(--muted);font-size:14px;margin:0;padding:18px 0}
+#list li.me{font-weight:600}
 </style>
 </head>
 <body>
@@ -111,8 +140,38 @@ h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
       </div>
     </div>
     <div class="foot">
-      <button class="btn" id="go">Başla</button>
-      <p class="muted" id="best">Film başına 100 puan · harf −20 · yanlış −25</p>
+      <button class="btn" id="go">Tek başına oyna</button>
+      <div class="pair">
+        <button class="btn ghost" id="mk">Oda kur</button>
+        <button class="btn ghost" id="jn">Odaya katıl</button>
+      </div>
+      <p class="muted" id="best">Odada 2–5 kişi yarışır, ilk bilen kazanır.</p>
+    </div>
+  </section>
+
+  <section id="online" hidden>
+    <form class="stage" id="oform" style="justify-content:flex-start;padding-top:36px" autocomplete="off">
+      <h2 id="otitle"></h2>
+      <label class="field"><span>Adın</span><input id="name" maxlength="16" placeholder="Oyuncu" enterkeyhint="go"></label>
+      <label class="field" id="jfield"><span>Oda kodu</span><input id="jcode" maxlength="6" placeholder="ABCDE" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="go"></label>
+    </form>
+    <div class="foot">
+      <button class="btn" id="ogo" form="oform"></button>
+      <button class="link" id="oback">Vazgeç</button>
+    </div>
+  </section>
+
+  <section id="lobby" hidden>
+    <div class="stage" style="justify-content:flex-start;padding-top:30px">
+      <p class="tag" style="margin:0">Oda kodu</p>
+      <div class="code" id="code"></div>
+      <button class="share" id="share">Davet linkini paylaş</button>
+      <ul id="players"></ul>
+      <p class="muted" id="lnote" style="margin:16px 0 0;font-size:14px"></p>
+    </div>
+    <div class="foot">
+      <button class="btn" id="race">Yarışı başlat</button>
+      <button class="link" id="lexit">Odadan çık</button>
     </div>
   </section>
 
@@ -120,20 +179,23 @@ h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
     <div class="meta mono">
       <span id="pos"></span>
       <span class="score" id="score"></span>
+      <span class="timer" id="timer" hidden></span>
       <button class="skip" id="skip">Pas geç</button>
     </div>
-    <div class="track"><i id="prog"></i></div>
+    <div class="track" id="track"><i id="prog"></i></div>
+    <div class="board" id="board" hidden></div>
     <div class="stage">
       <div class="tag" id="tag"></div>
       <div id="puzzle"></div>
       <div class="hearts" id="hearts" aria-label="Kalan hak"></div>
       <div id="answer" aria-live="polite"></div>
       <p id="msg" aria-live="polite"></p>
-      <p class="desk muted" style="font-size:12px;margin:2px 0 0">Klavyeden yazabilirsin · Enter tahmin · Esc pas</p>
+      <p class="desk muted" id="keyhelp" style="font-size:12px;margin:2px 0 0"></p>
     </div>
     <div class="kb" id="kb"></div>
     <div class="foot" id="after" hidden>
       <button class="btn" id="next">Sonraki film →</button>
+      <p id="wait"></p>
     </div>
   </section>
 
@@ -145,6 +207,7 @@ h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
     </div>
     <div class="foot">
       <button class="btn" id="again">Tekrar oyna</button>
+      <button class="link" id="eexit" hidden>Odadan çık</button>
     </div>
   </section>
 </div>
@@ -353,11 +416,12 @@ const FILMS = `
 1989|Indiana Jones and the Last Crusade
 `.trim().split('\n').map(l => ({ y: l.slice(0, 4), t: l.slice(5) }))
 
-const ROUND = 10, LIVES = 3
+const ROUND = 10, LIVES = 3, MAXP = 5
 const $ = id => document.getElementById(id)
 const isVowel = c => 'AEIOU'.includes(c.normalize('NFD')[0])
 // Compare letters only: accents, case, digits, spaces and punctuation don't matter.
 const fold = s => s.normalize('NFD').replace(/\p{M}/gu, '').toUpperCase().replace(/[^A-Z]/g, '')
+const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)
 const store = {
   get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} },
@@ -395,24 +459,28 @@ function pickRound() {
   return r
 }
 
-function show(id) { for (const s of ['start', 'play', 'end']) $(s).hidden = s !== id }
+function show(id) { for (const s of ['start', 'online', 'lobby', 'play', 'end']) $(s).hidden = s !== id }
 
 function start() {
   round = pickRound(); idx = 0; total = 0; results = []
-  show('play'); load()
+  show('play'); load(round[idx])
 }
 
-function load() {
-  const f = round[idx], chars = [...f.t.toUpperCase()]
+function load(f) {
+  const chars = [...f.t.toUpperCase()]
   const vowels = chars.map((c, i) => isVowel(c) ? i : -1).filter(i => i >= 0)
   const letters = chars.filter(c => /\p{L}/u.test(c)).length
   // One letter per ~7 letters of title, at least one, never more than the vowels.
   const hints = Math.max(1, Math.min(vowels.length, Math.round(letters / 7)))
-  cur = { f, chars, vowels, hints, used: 0, wrong: 0, shown: new Set(), done: false }
+  // Race time: 8 s plus one per letter, 10–30 s.
+  const dur = Math.max(10, Math.min(30, 8 + letters))
+  cur = { f, chars, vowels, hints, dur, used: 0, wrong: 0, shown: new Set(), done: false }
   setTyped('')
-  $('kb').hidden = $('skip').hidden = false
+  $('kb').hidden = $('answer').hidden = false
   $('after').hidden = true
-  $('answer').hidden = false
+  $('timer').classList.remove('low')
+  $('track').classList.remove('low')
+  $('keyhelp').textContent = NET ? 'Klavyeden yazabilirsin · Enter tahmin' : 'Klavyeden yazabilirsin · Enter tahmin · Esc pas'
   msg('')
   render()
 }
@@ -428,9 +496,15 @@ function render() {
   })
   $('puzzle').innerHTML = html + '</span>'
   $('tag').textContent = `${s.f.y} · ${s.f.t.split(' ').length} kelime`
-  $('pos').textContent = `${idx + 1}/${ROUND}`
-  $('score').textContent = `${total} puan`
-  $('prog').style.width = `${(idx + s.done) / ROUND * 100}%`
+  $('pos').textContent = `${(NET ? S.idx : idx) + 1}/${ROUND}`
+  $('score').textContent = `${NET ? S.players[NET.id]?.score ?? 0 : total} puan`
+  $('board').hidden = !NET
+  $('timer').hidden = !NET || s.done
+  $('skip').hidden = !!NET || s.done
+  if (NET) {
+    $('board').innerHTML = ranking().map(([id, p]) => `<span class="${+id === NET.id ? 'me' : ''}">${esc(p.name)} ${p.score}</span>`).join('')
+    if (s.done) $('prog').style.width = '0'
+  } else $('prog').style.width = `${(idx + s.done) / ROUND * 100}%`
   $('hearts').innerHTML = Array.from({ length: LIVES }, (_, i) => `<i class="${i < LIVES - s.wrong ? '' : 'off'}"></i>`).join('')
   const left = s.hints - s.used
   $('hint').innerHTML = `Harf al<small>${left} hak</small>`
@@ -439,17 +513,29 @@ function render() {
 
 function setTyped(t) { typed = t.slice(0, 60); $('answer').textContent = typed }
 function msg(t, cls = '') { $('msg').textContent = t; $('msg').className = cls }
+const points = () => Math.max(10, 100 - 20 * cur.used - 25 * cur.wrong)
 
 function guess() {
   const g = fold(typed)
   if (!g) return
-  if (g === fold(cur.f.t)) return finish(true)
+  if (g === fold(cur.f.t)) {
+    if (!NET) return finish(true)
+    // Race: the host decides who was first.
+    cur.sent = true
+    $('kb').hidden = true
+    msg('Doğru! Sonuç bekleniyor…', 'ok')
+    return NET.host ? got(NET.id, S.idx, points()) : send({ t: 'got', i: S.idx, pts: points() })
+  }
   cur.wrong++
   setTyped('')
   const a = $('answer')
   a.classList.remove('shake'); void a.offsetWidth; a.classList.add('shake')
-  if (cur.wrong >= LIVES) return finish(false)
-  msg(`Olmadı · ${LIVES - cur.wrong} hakkın kaldı`, 'bad')
+  if (cur.wrong >= LIVES) {
+    if (!NET) return finish(false)
+    cur.out = true
+    $('kb').hidden = true
+    msg('Hakların bitti · diğerlerini bekle', 'bad')
+  } else msg(`Olmadı · ${LIVES - cur.wrong} hakkın kaldı`, 'bad')
   render()
 }
 
@@ -461,36 +547,37 @@ function hint() {
   render()
 }
 
+// Solo only: a race film ends when the host says so.
 function finish(won) {
   const s = cur
   s.done = true; s.won = won
-  const pts = won ? Math.max(10, 100 - 20 * s.used - 25 * s.wrong) : 0
+  const pts = won ? points() : 0
   total += pts
   results.push({ t: s.f.t, pts })
-  $('answer').hidden = true
-  $('kb').hidden = $('skip').hidden = true
-  $('after').hidden = false
+  $('answer').hidden = $('kb').hidden = true
+  $('after').hidden = $('next').hidden = false
+  $('wait').hidden = true
   $('next').textContent = idx + 1 < ROUND ? 'Sonraki film →' : 'Sonucu gör →'
   msg(won ? `Bildin · +${pts} puan` : 'Bu sefer olmadı', won ? 'ok' : 'bad')
   render()
 }
 
-function next() { if (++idx < ROUND) load(); else end() }
+function next() { if (++idx < ROUND) load(round[idx]); else end() }
 
 function press(k) {
-  if (!cur || cur.done) return
+  if (!cur || cur.done || cur.out || cur.sent) return
   if (k === 'enter') guess()
   else if (k === 'back') setTyped(typed.slice(0, -1))
   else if (k === 'hint') hint()
-  else if (k === 'skip') finish(false)
+  else if (k === 'skip') { if (!NET) finish(false) }
   else if (k !== ' ' || (typed && !typed.endsWith(' '))) setTyped(typed + k.toUpperCase())
 }
 
 $('kb').onclick = e => { const b = e.target.closest('[data-k]'); if (b && !b.disabled) press(b.dataset.k) }
 $('skip').onclick = () => press('skip')
 document.addEventListener('keydown', e => {
-  if (e.ctrlKey || e.metaKey || e.altKey || $('play').hidden) return
-  if (cur.done) { if (e.key === 'Enter') { e.preventDefault(); next() } return }
+  if (e.ctrlKey || e.metaKey || e.altKey || $('play').hidden || !cur) return
+  if (cur.done) { if (e.key === 'Enter' && !NET) { e.preventDefault(); next() } return }
   const k = e.key === 'Enter' ? 'enter' : e.key === 'Backspace' ? 'back' : e.key === 'Escape' ? 'skip' : e.key.length === 1 ? e.key : null
   if (k) { e.preventDefault(); press(k) }
 })
@@ -500,15 +587,207 @@ function end() {
   store.set('sf-best', best)
   $('total').textContent = `${total}`
   $('endbest').textContent = `puan · ${results.filter(r => r.pts).length}/${ROUND} film · en iyi ${best}`
-  $('list').innerHTML = results.map(r => `<li><span>${r.pts ? '✓' : '✗'} ${r.t}</span><span class="mono">${r.pts ? '+' + r.pts : '—'}</span></li>`).join('')
+  $('list').innerHTML = results.map(r => `<li><span>${r.pts ? '✓' : '✗'} ${esc(r.t)}</span><span class="mono">${r.pts ? '+' + r.pts : '—'}</span></li>`).join('')
+  $('again').textContent = 'Tekrar oyna'
+  $('again').disabled = false
+  $('eexit').hidden = true
   show('end')
 }
 
+// ================= rooms =================
+// /api/room/<code> is a Durable Object that relays JSON between up to 5 players (worker/index.js).
+// The lowest player id is the host: it owns the race state S, runs the clock, decides who was
+// first and broadcasts S on every change. Everyone renders from S. When the host leaves, the next
+// one takes over with the S it already has.
+// ponytail: answers live in the page, so a player could cheat from devtools; fine among friends.
+let NET = null, S = null
+const H = {} // host-only clocks: endsAt, nextAt
+let endsAt = 0 // local countdown for the current film
+const ranking = () => Object.entries(S.players).sort((a, b) => b[1].score - a[1].score)
+
+function send(m) { if (NET?.ws.readyState === 1) NET.ws.send(JSON.stringify(m)) }
+
+function online(create) {
+  $('otitle').textContent = create ? 'Oda kur' : 'Odaya katıl'
+  $('ogo').textContent = create ? 'Odayı kur' : 'Katıl'
+  $('jfield').hidden = create
+  $('name').value = store.get('sf-name', '')
+  $('oform').dataset.create = create ? '1' : ''
+  show('online')
+  ;(create || $('jcode').value ? $('name') : $('jcode')).focus()
+}
+
+$('oform').onsubmit = e => {
+  e.preventDefault()
+  const name = $('name').value.trim().slice(0, 16) || 'Oyuncu'
+  store.set('sf-name', name)
+  const create = !!$('oform').dataset.create
+  const code = create ? Array.from({ length: 5 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.random() * 31 | 0]).join('')
+    : $('jcode').value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  if (!/^[A-Z0-9]{4,6}$/.test(code)) { $('jcode').focus(); return }
+  connect(code, create, name)
+}
+
+function connect(code, create, name) {
+  // SF prefix keeps these rooms apart from Hayatta Kal's.
+  const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/room/SF${code}?max=${MAXP}`)
+  NET = { ws, code, create, name, id: 0, host: false }
+  S = null
+  history.replaceState(null, '', '#' + code)
+  $('code').textContent = code
+  $('players').innerHTML = ''
+  $('lnote').textContent = 'Bağlanıyor…'
+  $('race').hidden = true
+  show('lobby')
+  ws.onmessage = e => { if (NET?.ws === ws) onNet(JSON.parse(e.data)) }
+  ws.onclose = () => { if (NET?.ws === ws) leave('Bağlantı koptu.') }
+}
+
+function leave(why) {
+  const n = NET
+  NET = S = null
+  if (n) try { n.ws.close() } catch {}
+  history.replaceState(null, '', location.pathname)
+  $('best').textContent = why || 'Odada 2–5 kişi yarışır, ilk bilen kazanır.'
+  $('best').classList.toggle('note', !!why)
+  show('start')
+}
+
+function onNet(m) {
+  switch (m.t) {
+    case 'full': return leave(`Oda dolu (en fazla ${MAXP} kişi).`)
+    case 'hello':
+      NET.id = m.id
+      NET.host = m.host === m.id
+      if (NET.host && !NET.create) return leave(`${NET.code} diye bir oda yok.`)
+      if (NET.host) { S = { phase: 'lobby', players: {}, host: NET.id }; hi(NET.id, NET.name) }
+      else send({ t: 'hi', name: NET.name })
+      break
+    case 'hi': if (NET.host) hi(m.from, m.name); break
+    case 'got': if (NET.host) got(m.from, m.i, m.pts); break
+    case 'S': applyS(m.s); break
+    case 'leave':
+      if (m.host === NET.id && !NET.host && S) { NET.host = true; H.endsAt = endsAt; H.nextAt = Date.now() + 4000 }
+      if (NET.host && S) { delete S.players[m.id]; S.host = NET.id; push() }
+      break
+  }
+}
+
+// ---- host ----
+function push() {
+  const s = { ...S, left: Math.max(0, (H.endsAt || 0) - Date.now()) }
+  send({ t: 'S', s })
+  applyS(s)
+}
+function hi(id, name) {
+  S.players[id] = { name: String(name || 'Oyuncu').slice(0, 16), score: S.players[id]?.score ?? 0 }
+  push()
+}
+function got(from, i, pts) {
+  if (S.phase !== 'film' || i !== S.idx || !S.players[from]) return
+  S.winner = from
+  S.pts = Math.max(10, Math.min(100, pts | 0))
+  S.players[from].score += S.pts
+  resolve()
+}
+function resolve() { S.phase = 'res'; H.nextAt = Date.now() + 4000; push() }
+function race() {
+  if (!NET?.host || Object.keys(S.players).length < 2) return
+  S.round = pickRound().map(f => FILMS.indexOf(f))
+  S.idx = 0
+  S.game = (S.game || 0) + 1
+  for (const p of Object.values(S.players)) p.score = 0
+  beginFilm()
+}
+function beginFilm() {
+  load(FILMS[S.round[S.idx]]) // sets cur.dur
+  cur.key = `${S.game}:${S.idx}`
+  H.endsAt = Date.now() + cur.dur * 1000
+  S.phase = 'film'; S.winner = null; S.pts = 0
+  push()
+}
+function hostTick() {
+  const now = Date.now()
+  if (S.phase === 'film' && now >= H.endsAt) { S.winner = null; resolve() }
+  else if (S.phase === 'res' && now >= H.nextAt) { if (++S.idx < ROUND) beginFilm(); else { S.phase = 'end'; push() } }
+}
+
+// ---- everyone ----
+function applyS(s) {
+  S = s
+  if (s.phase === 'lobby') return renderLobby()
+  if (s.phase === 'end') return raceEnd()
+  const key = `${s.game}:${s.idx}`
+  if (!cur || cur.key !== key) { load(FILMS[s.round[s.idx]]); cur.key = key }
+  show('play')
+  if (s.phase === 'film') endsAt = Date.now() + s.left
+  else if (!cur.done) {
+    cur.done = true
+    cur.won = s.winner != null
+    const w = s.players[s.winner]
+    msg(s.winner == null ? 'Süre doldu · kimse bilemedi' : s.winner === NET.id ? `Sen bildin · +${s.pts}` : `${w?.name ?? 'Biri'} bildi · +${s.pts}`,
+      s.winner === NET.id ? 'ok' : 'bad')
+    $('answer').hidden = $('kb').hidden = $('next').hidden = true
+    $('after').hidden = $('wait').hidden = false
+    $('wait').textContent = s.idx + 1 < ROUND ? 'Sonraki film geliyor…' : 'Sonuçlar geliyor…'
+  }
+  render()
+}
+
+function renderLobby() {
+  show('lobby')
+  const ps = Object.entries(S.players)
+  $('players').innerHTML = ps.map(([id, p]) => `<li><span>${esc(p.name)}</span><small>${[+id === S.host && 'kurucu', +id === NET.id && 'sen'].filter(Boolean).join(' · ')}</small></li>`).join('')
+    + '<li class="empty">—</li>'.repeat(MAXP - ps.length)
+  $('race').hidden = !NET.host
+  $('race').disabled = ps.length < 2
+  $('lnote').textContent = !NET.host ? 'Kurucunun yarışı başlatması bekleniyor…'
+    : ps.length < 2 ? 'En az 2 oyuncu gerekli · kodu paylaş' : `${ps.length} oyuncu hazır`
+}
+
+function raceEnd() {
+  const r = ranking()
+  const me = r.findIndex(([id]) => +id === NET.id) + 1
+  $('total').textContent = `${me}.`
+  const tie = r.length > 1 && r[1][1].score === r[0][1].score
+  $('endbest').textContent = tie ? `Berabere · ${r[0][1].score} puan` : `${r[0][1].name} kazandı · ${r[0][1].score} puan`
+  $('list').innerHTML = r.map(([id, p], i) => `<li class="${+id === NET.id ? 'me' : ''}"><span>${i + 1}. ${esc(p.name)}</span><span class="mono">${p.score}</span></li>`).join('')
+  $('again').textContent = NET.host ? 'Yeni tur' : 'Kurucu yeni turu başlatabilir'
+  $('again').disabled = !NET.host || r.length < 2
+  $('eexit').hidden = false
+  show('end')
+}
+
+setInterval(() => {
+  if (!NET || !S) return
+  if (NET.host) hostTick()
+  if (S.phase !== 'film' || !cur) return
+  const ms = Math.max(0, endsAt - Date.now()), low = ms < 5000
+  $('timer').textContent = `${Math.ceil(ms / 1000)} sn`
+  $('timer').classList.toggle('low', low)
+  $('track').classList.toggle('low', low)
+  $('prog').style.width = `${ms / (cur.dur * 10)}%`
+}, 200)
+
+$('share').onclick = async () => {
+  const url = `${location.origin}${location.pathname}#${NET.code}`
+  try { if (navigator.share) return await navigator.share({ title: 'Sessiz Film', text: `Sessiz Film odama gel: ${NET.code}`, url }) } catch { return }
+  try { await navigator.clipboard.writeText(url); $('share').textContent = 'Link kopyalandı' } catch { $('share').textContent = url }
+}
+
 const best = store.get('sf-best', 0)
-if (best) $('best').textContent = `En iyi skorun ${best} / ${ROUND * 100}`
+if (best) $('best').textContent = `Tek başına en iyi skorun ${best} / ${ROUND * 100}`
 $('go').onclick = start
-$('again').onclick = start
+$('mk').onclick = () => online(true)
+$('jn').onclick = () => online(false)
+$('oback').onclick = () => show('start')
+$('race').onclick = race
+$('lexit').onclick = $('eexit').onclick = () => leave()
+$('again').onclick = () => NET ? race() : start()
 $('next').onclick = next
+// Invite links: /games/sessiz-film/#CODE opens the join form.
+const inv = location.hash.slice(1).toUpperCase()
+if (/^[A-Z0-9]{4,6}$/.test(inv)) { $('jcode').value = inv; online(false) }
 </script>
 </body>
 </html>

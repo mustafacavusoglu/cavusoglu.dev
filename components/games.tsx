@@ -27,8 +27,8 @@ const games = [
   {
     slug: "sessiz-film",
     name: "Sessiz Film",
-    desc: "IMDb Top 250 films with the vowels gone. Guess the title, three tries each.",
-    tag: "Mobile · word game",
+    desc: "IMDb Top 250 films with the vowels gone. Play solo or race 2-5 friends in a room; first to guess wins.",
+    tag: "Mobile · solo or 2-5 online",
   },
 ]
 

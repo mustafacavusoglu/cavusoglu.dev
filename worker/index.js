@@ -1,10 +1,11 @@
 // Everything except /api/* is served straight from ./out by the assets layer (see wrangler.jsonc).
-// /api/room/<code> opens a WebSocket into one Durable Object per room code: the Hayatta Kal co-op relay.
+// /api/room/<code> opens a WebSocket into one Durable Object per room code: the relay for Hayatta Kal co-op
+// and Sessiz Film races (which prefix their codes with SF).
 // /api/hmdb/* is the hidden /hmdb film log: one Durable Object ("hmdb") holds every film and its ratings.
 
 import { DurableObject } from "cloudflare:workers";
 
-const MAX = 4;
+const MAX = 4; // default room size; a game may ask for up to 5 with ?max=
 const pid = (ws) => ws.deserializeAttachment();
 
 // A dumb relay: stamps each message with the sender's id and passes it on (to everyone else, or to
@@ -18,7 +19,8 @@ export class Room {
     if (req.headers.get("Upgrade") !== "websocket") return new Response("WebSocket only", { status: 426 });
     const { 0: client, 1: server } = new WebSocketPair();
     const ids = this.ctx.getWebSockets().map(pid);
-    if (ids.length >= MAX) {
+    const max = Math.min(5, Number(new URL(req.url).searchParams.get("max")) || MAX);
+    if (ids.length >= max) {
       server.accept();
       server.send('{"t":"full"}');
       server.close(4000, "full");
