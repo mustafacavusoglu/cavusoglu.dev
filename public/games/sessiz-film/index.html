@@ -461,7 +461,8 @@ function start() {
 }
 
 function load(f) {
-  const chars = [...f.t.toUpperCase()]
+  // Plain A–Z on screen (Léon → LEON), so every blank is one of the five pad keys.
+  const chars = [...f.t.normalize('NFD').replace(/\p{M}/gu, '').toUpperCase()]
   const vowels = chars.map((c, i) => isVowel(c) ? i : -1).filter(i => i >= 0)
   const letters = chars.filter(c => /\p{L}/u.test(c)).length
   // One letter per ~7 letters of title, at least one, but never every vowel.
