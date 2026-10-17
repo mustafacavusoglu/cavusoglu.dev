@@ -4,7 +4,7 @@ import { GameGrid } from "@/components/games"
 
 export const metadata: Metadata = {
   title: "Games – Mustafa Çavuşoğlu",
-  description: "Small browser games: Avcı Kasap, Yörünge, Nebula Front and Hayatta Kal. No sign-up, progress stays in your browser.",
+  description: "Small browser games: Avcı Kasap, Yörünge, Nebula Front, Hayatta Kal and Sessiz Film. No sign-up, progress stays in your browser.",
 }
 
 export default function GamesPage() {

@@ -24,6 +24,12 @@ const games = [
     desc: "Wilderness survival: gather, craft, keep the fire burning through the night. Solo or 2-4 player co-op.",
     tag: "Landscape · touch · keys",
   },
+  {
+    slug: "sessiz-film",
+    name: "Sessiz Film",
+    desc: "Guess the film from its consonants. The vowels are gone; three tries per film.",
+    tag: "Mobile · word game",
+  },
 ]
 
 /** Screenshot cards; each opens the game. Progress is saved in the player's browser. */
