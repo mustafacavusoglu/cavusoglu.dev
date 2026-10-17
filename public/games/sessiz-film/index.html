@@ -60,10 +60,10 @@ h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
 .hearts{display:flex;gap:6px;justify-content:center}
 .hearts i{width:9px;height:9px;border-radius:50%;background:var(--ink);transition:background .2s}
 .hearts i.off{background:var(--line)}
-#answer{width:100%;min-height:54px;margin-top:22px;padding:0 8px;display:flex;align-items:center;justify-content:center;border-bottom:2px solid var(--line);font:500 20px/1.3 "IBM Plex Mono",monospace;letter-spacing:.04em;word-break:break-word}
-#answer::after{content:'';width:2px;height:22px;margin-left:2px;background:var(--accent);animation:blink 1s steps(1) infinite}
-#answer:empty::before{content:'Tahminini yaz';order:1;color:var(--muted);font-family:"IBM Plex Sans",sans-serif;letter-spacing:0;font-weight:400}
-#answer:empty::after{margin:0 2px 0 0}
+.pz i.b{position:relative;cursor:pointer;border-bottom-color:var(--ink)}
+.pz i.b::before{content:'';position:absolute;inset:-10px -3px}
+.pz i.on{border-bottom-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);border-radius:5px 5px 0 0}
+.pz i.on:empty::after{content:'';display:inline-block;width:2px;height:.8em;margin-top:.2em;background:var(--accent);animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
 #msg{min-height:24px;margin:10px 0 0;font-size:15px}
 #msg.ok{color:var(--ok)}
@@ -75,20 +75,19 @@ h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
 .kb{padding:6px 0 0}
 .kr{display:flex;gap:6px;margin-top:7px}
 .kr .sp{flex:.5}
-.key{flex:1;height:54px;border-radius:9px;background:var(--key);font-weight:500;font-size:18px;display:grid;place-items:center}
+.key{flex:1;height:52px;border-radius:10px;background:var(--key);font-weight:500;font-size:22px;display:grid;place-items:center}
+.key.vow{height:60px;font:500 24px "IBM Plex Mono",monospace}
 .key:active{background:var(--line);transform:scale(.96)}
-.key.wide{flex:1.5;font-size:20px}
 .key.hint{flex:1.6;font-size:14px;line-height:1.1;align-content:center}
 .key.hint small{font-size:11px;color:var(--muted);font-weight:400}
-.key.space{flex:2.2;font-size:13px;color:var(--muted)}
-.key.go{flex:1.6;background:var(--ink);color:var(--bg);font-size:15px}
+.key.go{flex:1.8;background:var(--ink);color:var(--bg);font-size:15px}
 .desk{display:none}
 @media (hover:hover) and (pointer:fine){
   .desk{display:block}
   .key:hover{filter:brightness(.96)}
   :root.dark .key:hover{filter:brightness(1.2)}
 }
-@media (max-height:640px){.key{height:46px}#answer{margin-top:14px}#puzzle{margin:8px 0 12px}}
+@media (max-height:640px){.key,.key.vow{height:48px}#puzzle{margin:8px 0 12px}}
 
 .btn.ghost{background:var(--soft);color:var(--ink)}
 .btn:disabled{opacity:.4}
@@ -133,7 +132,7 @@ h2{font-size:26px;font-weight:600;letter-spacing:-.02em;margin:0 0 20px}
       <div class="pz demo" id="demo"></div>
       <p class="tag" style="margin:0 0 28px">The Godfather · 1972</p>
       <h1>Sesli harfler gitti.</h1>
-      <p class="lead">IMDb Top 250'den filmler, sadece sessiz harfleriyle. Kalanlardan filmi bul.</p>
+      <p class="lead">IMDb Top 250'den filmler, sadece sessiz harfleriyle. Boşluklara sesli harfleri koy, filmi bul.</p>
       <div class="rules">
         <div><b>10</b><span>film her turda</span></div>
         <div><b>3</b><span>hak her filmde</span></div>
@@ -189,7 +188,6 @@ h2{font-size:26px;font-weight:600;letter-spacing:-.02em;margin:0 0 20px}
       <div class="tag" id="tag"></div>
       <div class="pz" id="puzzle"></div>
       <div class="hearts" id="hearts" aria-label="Kalan hak"></div>
-      <div id="answer" aria-live="polite"></div>
       <p id="msg" aria-live="polite"></p>
       <p class="desk muted" id="keyhelp" style="font-size:12px;margin:2px 0 0"></p>
     </div>
@@ -437,16 +435,11 @@ function setTheme(dark) {
 setTheme(store.get('sf-dark', false))
 $('theme').onclick = () => { const d = !document.documentElement.classList.contains('dark'); store.set('sf-dark', d); setTheme(d) }
 
-// On-screen keyboard: the phone's own keyboard never opens, so the layout stays put.
-const keys = s => [...s].map(k => `<button class="key" data-k="${k}">${k}</button>`).join('')
-$('kb').innerHTML = [
-  keys('QWERTYUIOP'),
-  `<i class="sp"></i>${keys('ASDFGHJKL')}<i class="sp"></i>`,
-  `<i class="sp"></i>${keys('ZXCVBNM')}<button class="key wide" data-k="back" aria-label="Sil">⌫</button>`,
-  '<button class="key hint" data-k="hint" id="hint"></button><button class="key space" data-k=" ">boşluk</button><button class="key go" data-k="enter">Tahmin</button>',
-].map(r => `<div class="kr">${r}</div>`).join('')
+// Vowel pad: the consonants are given, so you only fill the blanks. The phone's keyboard never opens.
+$('kb').innerHTML = `<div class="kr">${[...'AEIOU'].map(k => `<button class="key vow" data-k="${k}">${k}</button>`).join('')}</div>
+<div class="kr"><button class="key hint" data-k="hint" id="hint"></button><button class="key" data-k="left" aria-label="Önceki boşluk">‹</button><button class="key" data-k="right" aria-label="Sonraki boşluk">›</button><button class="key" data-k="back" aria-label="Sil">⌫</button><button class="key go" data-k="enter">Tahmin</button></div>`
 
-let round, idx, total, results, cur, typed = ''
+let round, idx, total, results, cur
 
 // Prefer films not seen in earlier rounds; start over when too few are left.
 function pickRound() {
@@ -471,24 +464,25 @@ function load(f) {
   const chars = [...f.t.toUpperCase()]
   const vowels = chars.map((c, i) => isVowel(c) ? i : -1).filter(i => i >= 0)
   const letters = chars.filter(c => /\p{L}/u.test(c)).length
-  // One letter per ~7 letters of title, at least one, never more than the vowels.
-  const hints = Math.max(1, Math.min(vowels.length, Math.round(letters / 7)))
+  // One letter per ~7 letters of title, at least one, but never every vowel.
+  const hints = Math.min(vowels.length - 1, Math.max(1, Math.round(letters / 7)))
   // Race time: 8 s plus one per letter, 10–30 s.
   const dur = Math.max(10, Math.min(30, 8 + letters))
-  cur = { f, chars, vowels, hints, dur, used: 0, wrong: 0, shown: new Set(), done: false }
-  setTyped('')
-  $('kb').hidden = $('answer').hidden = false
+  cur = { f, chars, vowels, hints, dur, used: 0, wrong: 0, shown: new Set(), fill: {}, at: vowels[0], done: false }
+  $('kb').hidden = false
   $('after').hidden = true
   $('timer').classList.remove('low')
   $('track').classList.remove('low')
-  $('keyhelp').textContent = NET ? 'Klavyeden yazabilirsin · Enter tahmin' : 'Klavyeden yazabilirsin · Enter tahmin · Esc pas'
+  $('keyhelp').textContent = 'A E I O U ile doldur · ← → gez · Enter tahmin' + (NET ? '' : ' · Esc pas')
   msg('')
   render()
 }
 
 function render() {
   const s = cur
-  $('puzzle').innerHTML = slots(s.chars, i => s.shown.has(i) ? 'v' : s.done ? (s.won ? 'v' : 'x') : '')
+  const live = !s.done && !s.out && !s.sent
+  $('puzzle').innerHTML = slots(s.chars, i => s.shown.has(i) ? ['v', s.chars[i]] : s.done ? [s.won ? 'v' : 'x', s.chars[i]]
+    : [live && i === s.at ? 'on' : '', s.fill[i] || ''])
   $('tag').textContent = `${s.f.y} · ${s.chars.filter(isChar).length} harf`
   $('pos').textContent = `${(NET ? S.idx : idx) + 1}/${ROUND}`
   $('score').textContent = `${NET ? S.players[NET.id]?.score ?? 0 : total} puan`
@@ -505,23 +499,40 @@ function render() {
   $('hint').disabled = left <= 0
 }
 
-// Every letter sits on its own underline so the length shows; vowels stay blank until revealed.
+// Every letter sits on its own underline so the length shows. Vowels are blanks: cell(i) gives [class, letter].
 const isChar = c => /[\p{L}\p{N}]/u.test(c)
-function slots(chars, vowel) {
-  return '<span class="w">' + chars.map((c, i) => c === ' ' ? '</span><span class="w">'
-    : !isChar(c) ? `<i class="p">${esc(c)}</i>`
-    : !isVowel(c) ? `<i>${c}</i>`
-    : `<i class="${vowel(i)}">${vowel(i) ? c : ''}</i>`).join('') + '</span>'
+function slots(chars, cell) {
+  return '<span class="w">' + chars.map((c, i) => {
+    if (c === ' ') return '</span><span class="w">'
+    if (!isChar(c)) return `<i class="p">${esc(c)}</i>`
+    if (!isVowel(c)) return `<i>${c}</i>`
+    const [cls, ch] = cell(i)
+    return `<i class="b ${cls}" data-i="${i}">${ch}</i>`
+  }).join('') + '</span>'
 }
 
-function setTyped(t) { typed = t.slice(0, 60); $('answer').textContent = typed }
+// Blanks you can still fill (hint letters are locked), and moving the cursor between them.
+const blanks = () => cur.vowels.filter(i => !cur.shown.has(i))
+function move(d) { const b = blanks(); cur.at = b[Math.max(0, Math.min(b.length - 1, b.indexOf(cur.at) + d))] }
+function put(v) {
+  if (cur.at == null) return
+  cur.fill[cur.at] = v
+  // Jump to the next empty blank; when all are full, just step right.
+  const b = blanks(), k = b.indexOf(cur.at)
+  const empty = [...b.slice(k + 1), ...b.slice(0, k)].find(i => !cur.fill[i])
+  if (empty != null) cur.at = empty; else move(1)
+}
+function back() {
+  if (!cur.fill[cur.at]) move(-1)
+  delete cur.fill[cur.at]
+}
 function msg(t, cls = '') { $('msg').textContent = t; $('msg').className = cls }
 const points = () => Math.max(10, 100 - 20 * cur.used - 25 * cur.wrong)
 
 function guess() {
-  const g = fold(typed)
-  if (!g) return
-  if (g === fold(cur.f.t)) {
+  const b = blanks()
+  if (b.some(i => !cur.fill[i])) return msg('Önce tüm boşlukları doldur', 'bad')
+  if (b.every(i => fold(cur.fill[i]) === fold(cur.chars[i]))) {
     if (!NET) return finish(true)
     // Race: the host decides who was first.
     cur.sent = true
@@ -530,8 +541,7 @@ function guess() {
     return NET.host ? got(NET.id, S.idx, points()) : send({ t: 'got', i: S.idx, pts: points() })
   }
   cur.wrong++
-  setTyped('')
-  const a = $('answer')
+  const a = $('puzzle')
   a.classList.remove('shake'); void a.offsetWidth; a.classList.add('shake')
   if (cur.wrong >= LIVES) {
     if (!NET) return finish(false)
@@ -545,8 +555,11 @@ function guess() {
 function hint() {
   const hidden = cur.vowels.filter(i => !cur.shown.has(i))
   if (cur.used >= cur.hints || !hidden.length) return
-  cur.shown.add(hidden[Math.random() * hidden.length | 0])
+  const i = hidden[Math.random() * hidden.length | 0]
+  cur.shown.add(i)
+  delete cur.fill[i]
   cur.used++
+  if (cur.at === i) cur.at = blanks().find(j => !cur.fill[j]) ?? blanks()[0]
   render()
 }
 
@@ -557,7 +570,7 @@ function finish(won) {
   const pts = won ? points() : 0
   total += pts
   results.push({ t: s.f.t, pts })
-  $('answer').hidden = $('kb').hidden = true
+  $('kb').hidden = true
   $('after').hidden = $('next').hidden = false
   $('wait').hidden = true
   $('next').textContent = idx + 1 < ROUND ? 'Sonraki film →' : 'Sonucu gör →'
@@ -569,19 +582,29 @@ function next() { if (++idx < ROUND) load(round[idx]); else end() }
 
 function press(k) {
   if (!cur || cur.done || cur.out || cur.sent) return
-  if (k === 'enter') guess()
-  else if (k === 'back') setTyped(typed.slice(0, -1))
-  else if (k === 'hint') hint()
-  else if (k === 'skip') { if (!NET) finish(false) }
-  else if (k !== ' ' || (typed && !typed.endsWith(' '))) setTyped(typed + k.toUpperCase())
+  if (k === 'enter') return guess()
+  if (k === 'hint') return hint()
+  if (k === 'skip') return NET || finish(false)
+  if (k === 'back') back()
+  else if (k === 'left') move(-1)
+  else if (k === 'right') move(1)
+  else if (/^[AEIOU]$/.test(fold(k))) put(fold(k))
+  else return
+  render()
 }
 
 $('kb').onclick = e => { const b = e.target.closest('[data-k]'); if (b && !b.disabled) press(b.dataset.k) }
 $('skip').onclick = () => press('skip')
+$('puzzle').onclick = e => {
+  const t = e.target.closest('[data-i]')
+  if (!t || cur.done || cur.out || cur.sent || cur.shown.has(+t.dataset.i)) return
+  cur.at = +t.dataset.i
+  render()
+}
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey || $('play').hidden || !cur) return
   if (cur.done) { if (e.key === 'Enter' && !NET) { e.preventDefault(); next() } return }
-  const k = e.key === 'Enter' ? 'enter' : e.key === 'Backspace' ? 'back' : e.key === 'Escape' ? 'skip' : e.key.length === 1 ? e.key : null
+  const k = e.key === 'Enter' ? 'enter' : e.key === 'Backspace' ? 'back' : e.key === 'Escape' ? 'skip' : e.key === 'ArrowLeft' ? 'left' : e.key === 'ArrowRight' ? 'right' : e.key.length === 1 ? e.key : null
   if (k) { e.preventDefault(); press(k) }
 })
 
@@ -730,7 +753,7 @@ function applyS(s) {
     const w = s.players[s.winner]
     msg(s.winner == null ? 'Süre doldu · kimse bilemedi' : s.winner === NET.id ? `Sen bildin · +${s.pts}` : `${w?.name ?? 'Biri'} bildi · +${s.pts}`,
       s.winner === NET.id ? 'ok' : 'bad')
-    $('answer').hidden = $('kb').hidden = $('next').hidden = true
+    $('kb').hidden = $('next').hidden = true
     $('after').hidden = $('wait').hidden = false
     $('wait').textContent = s.idx + 1 < ROUND ? 'Sonraki film geliyor…' : 'Sonuçlar geliyor…'
   }
@@ -780,7 +803,7 @@ $('share').onclick = async () => {
 
 const best = store.get('sf-best', 0)
 if (best) $('best').textContent = `Tek başına en iyi skorun ${best} / ${ROUND * 100}`
-$('demo').innerHTML = slots([...'THE GODFATHER'], i => i === 8 ? 'v' : '')
+$('demo').innerHTML = slots([...'THE GODFATHER'], i => i === 8 ? ['v', 'A'] : ['', ''])
 $('go').onclick = start
 $('mk').onclick = () => online(true)
 $('jn').onclick = () => online(false)
