@@ -9,274 +9,355 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#fff;--ink:#111113;--body:#3f3f46;--muted:#6b6b73;--line:#e6e6e9;--soft:#f6f6f7;--accent:#1f4fd1;--ok:#15803d;--bad:#c2410c}
-:root.dark{--bg:#0f0f11;--ink:#f2f2f3;--body:#c9c9cf;--muted:#8b8b93;--line:#2a2a2f;--soft:#18181b;--accent:#7aa2ff;--ok:#4ade80;--bad:#fb923c}
+:root{--bg:#fff;--ink:#111113;--body:#3f3f46;--muted:#6b6b73;--line:#e6e6e9;--soft:#f4f4f6;--key:#ececef;--accent:#1f4fd1;--ok:#15803d;--bad:#c2410c}
+:root.dark{--bg:#0f0f11;--ink:#f2f2f3;--body:#c9c9cf;--muted:#8b8b93;--line:#26262b;--soft:#18181b;--key:#232328;--accent:#7aa2ff;--ok:#4ade80;--bad:#fb923c}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;-webkit-text-size-adjust:100%}
-button,input{font:inherit;color:inherit}
-button{cursor:pointer}
-button:disabled{opacity:.4;cursor:default}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;-webkit-text-size-adjust:100%;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+button:disabled{opacity:.35;cursor:default}
 [hidden]{display:none!important}
-.app{max-width:520px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 28px)}
-header{display:flex;align-items:center;justify-content:space-between}
-header a{color:var(--muted);text-decoration:none;font-size:14px}
-header a:hover{color:var(--accent)}
-.icon{width:36px;height:36px;border:1px solid var(--line);border-radius:8px;background:none;font-size:16px;line-height:1}
-h1{font-size:30px;font-weight:600;letter-spacing:-.02em;margin:32px 0 8px}
-p{color:var(--body);margin:0 0 14px}
-.rules{list-style:none;padding:0;margin:22px 0 28px;border-top:1px solid var(--line)}
-.rules li{padding:11px 0;border-bottom:1px solid var(--line);color:var(--body);font-size:15px}
-.rules b{color:var(--ink);font-weight:500}
-.btn{display:block;width:100%;padding:14px;border-radius:10px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);font-weight:500}
-.btn.ghost{background:none;color:var(--ink);border-color:var(--line)}
 .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .muted{color:var(--muted)}
-.bar{display:flex;justify-content:space-between;align-items:baseline;margin:26px 0 10px;font-size:13px}
-.track{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px}
-.track i{display:block;height:100%;background:var(--accent);transition:width .3s}
-.card{border:1px solid var(--line);border-radius:14px;padding:18px 16px 16px;background:var(--bg)}
-.tag{font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
-#puzzle{min-height:132px;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:10px 22px;padding:22px 0;font:500 clamp(26px,8vw,38px)/1.15 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.06em;text-align:center}
+.app{max-width:500px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 8px) 8px calc(env(safe-area-inset-bottom) + 8px)}
+header{display:grid;grid-template-columns:44px 1fr 44px;align-items:center}
+header b{text-align:center;font-weight:600;letter-spacing:-.01em}
+.icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--muted);font-size:18px;text-decoration:none}
+.icon:hover{background:var(--soft);color:var(--ink)}
+section{flex:1;min-height:0;display:flex;flex-direction:column}
+.stage{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:8px 10px;text-align:center}
+.btn{width:100%;height:56px;border-radius:14px;background:var(--ink);color:var(--bg);font-weight:500;font-size:17px}
+.btn:active{opacity:.85}
+
+/* start + end */
+h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
+.lead{color:var(--body);margin:0 0 26px;max-width:340px}
+.demo{font:500 30px/1.2 "IBM Plex Mono",monospace;letter-spacing:.08em;margin-bottom:6px}
+.demo span{color:var(--accent)}
+.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.rules div{background:var(--soft);border-radius:14px;padding:14px 6px}
+.rules b{display:block;font-size:22px;font-weight:600}
+.rules span{font-size:12px;color:var(--muted)}
+.foot{padding:8px 2px 0}
+.foot p{margin:10px 0 0;text-align:center;font-size:13px}
+.big{font-size:56px;font-weight:600;letter-spacing:-.04em;line-height:1}
+#list{list-style:none;padding:0;margin:20px 0 0;width:100%;text-align:left}
+#list li{display:flex;justify-content:space-between;gap:12px;padding:9px 4px;border-bottom:1px solid var(--line);font-size:15px}
+#list li span:last-child{color:var(--muted);flex:none}
+
+/* play */
+.meta{display:flex;align-items:center;gap:14px;padding:2px 2px 8px 6px;font-size:13px}
+.meta .score{font-weight:500;margin-right:auto}
+.skip{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted)}
+.skip:hover{color:var(--ink)}
+.track{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin:0 6px}
+.track i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.tag{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+#puzzle{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 20px;margin:14px 0 16px;font:500 clamp(26px,8.4vw,38px)/1.2 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.07em}
 #puzzle .w{white-space:nowrap}
 #puzzle .v{color:var(--accent)}
 #puzzle .x{color:var(--bad)}
-.stats{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px;font-size:13px;color:var(--muted)}
-.hearts{display:inline-flex;gap:5px;margin-left:6px;vertical-align:middle}
-.hearts i{width:10px;height:10px;border-radius:50%;background:var(--ink)}
+.hearts{display:flex;gap:6px;justify-content:center}
+.hearts i{width:9px;height:9px;border-radius:50%;background:var(--ink);transition:background .2s}
 .hearts i.off{background:var(--line)}
-form{display:flex;gap:8px;margin-top:16px}
-input{flex:1;min-width:0;padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:var(--soft);outline:none;font-size:16px}
-input:focus{border-color:var(--accent);background:var(--bg)}
-form .btn{width:auto;padding:13px 18px}
-.row{display:flex;gap:8px;margin-top:8px}
-.row .btn{padding:11px;font-size:15px}
-#msg{min-height:24px;margin:14px 0 0;font-size:15px;text-align:center}
+#answer{width:100%;min-height:54px;margin-top:22px;padding:0 8px;display:flex;align-items:center;justify-content:center;border-bottom:2px solid var(--line);font:500 20px/1.3 "IBM Plex Mono",monospace;letter-spacing:.04em;word-break:break-word}
+#answer::after{content:'';width:2px;height:22px;margin-left:2px;background:var(--accent);animation:blink 1s steps(1) infinite}
+#answer:empty::before{content:'Tahminini yaz';order:1;color:var(--muted);font-family:"IBM Plex Sans",sans-serif;letter-spacing:0;font-weight:400}
+#answer:empty::after{margin:0 2px 0 0}
+@keyframes blink{50%{opacity:0}}
+#msg{min-height:24px;margin:10px 0 0;font-size:15px}
 #msg.ok{color:var(--ok)}
 #msg.bad{color:var(--bad)}
 .shake{animation:shake .35s}
-@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
-.big{font:600 56px/1 "IBM Plex Sans",sans-serif;letter-spacing:-.03em;margin:30px 0 6px}
-#list{list-style:none;padding:0;margin:24px 0 28px;border-top:1px solid var(--line)}
-#list li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
-#list .mono{color:var(--muted);flex:none}
-@media (min-width:700px){.app{padding-top:40px}h1{font-size:36px}}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+
+/* keyboard */
+.kb{padding:6px 0 0}
+.kr{display:flex;gap:6px;margin-top:7px}
+.kr .sp{flex:.5}
+.key{flex:1;height:54px;border-radius:9px;background:var(--key);font-weight:500;font-size:18px;display:grid;place-items:center}
+.key:active{background:var(--line);transform:scale(.96)}
+.key.wide{flex:1.5;font-size:20px}
+.key.hint{flex:1.6;font-size:14px;line-height:1.1;align-content:center}
+.key.hint small{font-size:11px;color:var(--muted);font-weight:400}
+.key.space{flex:2.2;font-size:13px;color:var(--muted)}
+.key.go{flex:1.6;background:var(--ink);color:var(--bg);font-size:15px}
+.desk{display:none}
+@media (hover:hover) and (pointer:fine){
+  .desk{display:block}
+  .key:hover{filter:brightness(.96)}
+  :root.dark .key:hover{filter:brightness(1.2)}
+}
+@media (max-height:640px){.key{height:46px}#answer{margin-top:14px}#puzzle{margin:8px 0 10px}}
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <a href="/games/">← Games</a>
+    <a class="icon" href="/games/" aria-label="Oyunlara dön">←</a>
+    <b>Sessiz Film</b>
     <button class="icon" id="theme" aria-label="Temayı değiştir">☾</button>
   </header>
 
   <section id="start">
-    <h1>Sessiz Film</h1>
-    <p>Film adlarındaki sesli harfler (A E I İ O Ö U Ü) silindi. Geriye kalan sessiz harflerden filmi bul.</p>
-    <ul class="rules">
-      <li><b>10 film</b> her turda; yerli ve yabancı karışık.</li>
-      <li><b>3 hak</b> her film için. Üç yanlışta cevap açılır.</li>
-      <li><b>Harf al:</b> uzun adlarda daha çok. Her aldığın harf bir sesli harfi yerine koyar.</li>
-      <li><b>Puan:</b> film başına 100. Harf −20, yanlış tahmin −25.</li>
-    </ul>
-    <button class="btn" id="go">Başla</button>
-    <p class="muted mono" id="best" style="margin-top:14px;font-size:13px;text-align:center"></p>
+    <div class="stage">
+      <div class="demo">TH GDF<span>A</span>THR</div>
+      <p class="tag" style="margin:0 0 28px">The Godfather · 1972</p>
+      <h1>Sesli harfler gitti.</h1>
+      <p class="lead">IMDb Top 250'den filmler, sadece sessiz harfleriyle. Kalanlardan filmi bul.</p>
+      <div class="rules">
+        <div><b>10</b><span>film her turda</span></div>
+        <div><b>3</b><span>hak her filmde</span></div>
+        <div><b>1–4</b><span>harf alma, ada göre</span></div>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="btn" id="go">Başla</button>
+      <p class="muted" id="best">Film başına 100 puan · harf −20 · yanlış −25</p>
+    </div>
   </section>
 
   <section id="play" hidden>
-    <div class="bar mono"><span id="pos"></span><span id="score"></span></div>
+    <div class="meta mono">
+      <span id="pos"></span>
+      <span class="score" id="score"></span>
+      <button class="skip" id="skip">Pas geç</button>
+    </div>
     <div class="track"><i id="prog"></i></div>
-    <div class="card" id="card">
+    <div class="stage">
       <div class="tag" id="tag"></div>
       <div id="puzzle"></div>
-      <div class="stats">
-        <span>Hak<span class="hearts" id="hearts"></span></span>
-        <span id="hintleft"></span>
-      </div>
+      <div class="hearts" id="hearts" aria-label="Kalan hak"></div>
+      <div id="answer" aria-live="polite"></div>
+      <p id="msg" aria-live="polite"></p>
+      <p class="desk muted" style="font-size:12px;margin:2px 0 0">Klavyeden yazabilirsin · Enter tahmin · Esc pas</p>
     </div>
-    <form id="form" autocomplete="off">
-      <input id="guess" placeholder="Filmin adı" enterkeyhint="go" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Tahmin">
-      <button class="btn">Tahmin</button>
-    </form>
-    <div class="row" id="tools">
-      <button class="btn ghost" id="hint" type="button">Harf al</button>
-      <button class="btn ghost" id="skip" type="button">Pas geç</button>
+    <div class="kb" id="kb"></div>
+    <div class="foot" id="after" hidden>
+      <button class="btn" id="next">Sonraki film →</button>
     </div>
-    <p id="msg" aria-live="polite"></p>
-    <button class="btn" id="next" hidden>Sonraki film →</button>
   </section>
 
   <section id="end" hidden>
-    <div class="big" id="total"></div>
-    <p class="mono muted" id="endbest"></p>
-    <ul id="list"></ul>
-    <button class="btn" id="again">Tekrar oyna</button>
+    <div class="stage" style="justify-content:flex-start;padding-top:28px">
+      <div class="big" id="total"></div>
+      <p class="muted mono" id="endbest" style="margin:10px 0 0;font-size:14px"></p>
+      <ul id="list"></ul>
+    </div>
+    <div class="foot">
+      <button class="btn" id="again">Tekrar oyna</button>
+    </div>
   </section>
 </div>
 
 <script>
-// y = yerli, f = yabancı (Türkiye'deki adıyla)
+// IMDb Top 250 films (year|title).
 const FILMS = `
-y|Eşkıya
-y|Babam ve Oğlum
-y|Vizontele
-y|Hababam Sınıfı
-y|Tosun Paşa
-y|Selvi Boylum Al Yazmalım
-y|Süt Kardeşler
-y|Neşeli Günler
-y|Çöpçüler Kralı
-y|Kibar Feyzo
-y|Züğürt Ağa
-y|Muhsin Bey
-y|Her Şey Çok Güzel Olacak
-y|Gönül Yarası
-y|Issız Adam
-y|Mucize
-y|Dedemin İnsanları
-y|Kelebeğin Rüyası
-y|Müslüm
-y|Organize İşler
-y|Recep İvedik
-y|Düğün Dernek
-y|Yahşi Batı
-y|Hokkabaz
-y|Kış Uykusu
-y|Ahlat Ağacı
-y|Bir Zamanlar Anadolu'da
-y|Üç Maymun
-y|Masumiyet
-y|Ağır Roman
-y|Kurtlar Vadisi Irak
-y|Eyyvah Eyvah
-y|Kolpaçino
-y|Aile Arasında
-y|Ölümlü Dünya
-y|Bergen
-y|Kocan Kadar Konuş
-y|Aşk Tesadüfleri Sever
-y|Kutsal Damacana
-y|Pardon
-y|Hükümet Kadın
-y|Çiçek Abbas
-y|Gülen Gözler
-y|Banker Bilo
-y|Şaban Oğlu Şaban
-y|Mavi Boncuk
-y|Hababam Sınıfı Sınıfta Kaldı
-y|Kapıcılar Kralı
-y|Davaro
-y|Sev Kardeşim
-y|Bekçi Şaban
-y|Propaganda
-y|Vizontele Tuuba
-y|Sonbahar
-y|İklimler
-y|Yumurta
-y|Kuru Otlar Üstüne
-y|Hababam Sınıfı Tatilde
-y|Av Mevsimi
-y|Kaybedenler Kulübü
-y|Romantik Komedi
-y|Kurtuluş Son Durak
-f|Esaretin Bedeli
-f|Kara Şövalye
-f|Yüzüklerin Efendisi: Kralın Dönüşü
-f|Forrest Gump
-f|Matrix
-f|Titanik
-f|Gladyatör
-f|Dövüş Kulübü
-f|Ucuz Roman
-f|Kuzuların Sessizliği
-f|Yıldızlararası
-f|Başlangıç
-f|Er Ryan'ı Kurtarmak
-f|Yeşil Yol
-f|Geleceğe Dönüş
-f|Aslan Kral
-f|Oyuncak Hikayesi
-f|Hayat Güzeldir
-f|Ruhların Kaçışı
-f|Parazit
-f|Joker
-f|Avatar
-f|Akıl Oyunları
-f|Prestij
-f|Köstebek
-f|Zindan Adası
-f|Akıl Defteri
-f|Schindler'in Listesi
-f|Piyanist
-f|Guguk Kuşu
-f|Cesur Yürek
-f|Sıkı Dostlar
-f|Taksi Şoförü
-f|Rüzgar Gibi Geçti
-f|Evde Tek Başına
-f|Hayalet Avcıları
-f|Yaratık
-f|Sefiller
-f|Rezervuar Köpekleri
-f|Soysuzlar Çetesi
-f|Django Zincirsiz
-f|Sosyal Ağ
-f|Harry Potter ve Felsefe Taşı
-f|Karayip Korsanları
-f|Örümcek Adam
-f|Yenilmezler
-f|Buz Devri
-f|Kayıp Balık Nemo
-f|Yukarı Bak
-f|Ters Yüz
-f|Karlar Ülkesi
-f|Canavarlar Şirketi
-f|İnanılmaz Aile
-f|Arabalar
-f|Ejderhanı Nasıl Eğitirsin
-f|Kung Fu Panda
-f|Güzel ve Çirkin
-f|Pamuk Prenses ve Yedi Cüceler
-f|Külkedisi
-f|Küçük Deniz Kızı
-f|Bir Böceğin Hayatı
-f|Batman Başlıyor
-f|Yıldız Savaşları
-f|Jurassic Park
-f|Terminatör
-f|Hızlı ve Öfkeli
-f|Görevimiz Tehlike
-f|Truman Show
-f|Altıncı His
-f|Sıradışı Şüpheliler
-f|Mad Max: Öfkeli Yollar
-f|Kuşlar
-f|Sapık
-f|Kral Konuşması
-f|Oppenheimer
-f|Şrek
-f|Madagaskar
-f|Zootropolis
-f|Aladdin
-f|Mulan
-f|Herkül
-f|Pinokyo
-f|Sil Baştan
-f|Kurtlarla Dans
-f|Yağmur Adam
-f|Ölü Ozanlar Derneği
-f|Fil Adam
-f|Yeşil Rehber
-f|Siyah Kuğu
-f|Uçurtma Avcısı
-f|Büyük Balık
-`.trim().split('\n').map(l => ({ t: l.slice(2), yerli: l[0] === 'y' }))
+1994|The Shawshank Redemption
+1972|The Godfather
+2008|The Dark Knight
+1974|The Godfather Part II
+1957|12 Angry Men
+2003|The Lord of the Rings: The Return of the King
+1993|Schindler's List
+1994|Pulp Fiction
+2001|The Lord of the Rings: The Fellowship of the Ring
+1966|The Good, the Bad and the Ugly
+1994|Forrest Gump
+2002|The Lord of the Rings: The Two Towers
+1999|Fight Club
+2010|Inception
+1980|The Empire Strikes Back
+1999|The Matrix
+1990|Goodfellas
+1975|One Flew Over the Cuckoo's Nest
+2014|Interstellar
+1991|The Silence of the Lambs
+1998|Saving Private Ryan
+1946|It's a Wonderful Life
+1997|Life Is Beautiful
+1999|The Green Mile
+1977|Star Wars
+1954|Seven Samurai
+1995|The Usual Suspects
+1991|Terminator 2: Judgment Day
+2002|City of God
+2001|Spirited Away
+2019|Parasite
+1985|Back to the Future
+2000|Gladiator
+1994|Léon: The Professional
+1994|The Lion King
+1960|Psycho
+2006|The Departed
+2014|Whiplash
+2006|The Prestige
+2011|The Intouchables
+1968|Once Upon a Time in the West
+1988|Grave of the Fireflies
+1942|Casablanca
+1988|Cinema Paradiso
+1979|Apocalypse Now
+1954|Rear Window
+2000|Memento
+1981|Raiders of the Lost Ark
+1936|Modern Times
+1931|City Lights
+2012|Django Unchained
+2006|The Lives of Others
+1957|Paths of Glory
+1950|Sunset Boulevard
+1980|The Shining
+1964|Dr. Strangelove
+1940|The Great Dictator
+2018|Avengers: Infinity War
+2018|Spider-Man: Into the Spider-Verse
+2019|Avengers: Endgame
+1986|Aliens
+1997|Princess Mononoke
+2019|Joker
+1999|American Beauty
+2012|The Dark Knight Rises
+2003|Oldboy
+1984|Amadeus
+1995|Toy Story
+1995|Braveheart
+1997|Good Will Hunting
+1981|Das Boot
+1984|Once Upon a Time in America
+2009|3 Idiots
+2000|Requiem for a Dream
+2009|Inglourious Basterds
+1952|Singin' in the Rain
+2004|Eternal Sunshine of the Spotless Mind
+1983|Return of the Jedi
+1968|2001: A Space Odyssey
+1992|Reservoir Dogs
+1959|North by Northwest
+1962|Lawrence of Arabia
+1958|Vertigo
+1941|Citizen Kane
+1971|A Clockwork Orange
+1960|The Apartment
+2001|Amélie
+1962|To Kill a Mockingbird
+1973|The Sting
+2000|Snatch
+1983|Scarface
+1987|Full Metal Jacket
+1948|Bicycle Thieves
+1976|Taxi Driver
+1921|The Kid
+2015|Mad Max: Fury Road
+2010|Shutter Island
+2005|Batman Begins
+1993|Jurassic Park
+1998|The Truman Show
+1999|The Sixth Sense
+2001|A Beautiful Mind
+2003|Finding Nemo
+2001|Monsters, Inc.
+2004|Howl's Moving Castle
+2007|Ratatouille
+2015|Inside Out
+2010|Toy Story 3
+2006|Pan's Labyrinth
+1975|Jaws
+1982|Blade Runner
+1980|Raging Bull
+1974|Chinatown
+1963|The Great Escape
+1961|Yojimbo
+1950|Rashomon
+1957|Wild Strawberries
+1957|The Seventh Seal
+1948|The Treasure of the Sierra Madre
+1959|Some Like It Hot
+1959|Ben-Hur
+1939|Gone with the Wind
+1939|The Wizard of Oz
+1978|The Deer Hunter
+1986|Stand by Me
+1986|Platoon
+1987|The Princess Bride
+1988|Die Hard
+1989|Dead Poets Society
+1984|The Terminator
+1992|Unforgiven
+1993|In the Name of the Father
+1995|Casino
+1996|Fargo
+1996|Trainspotting
+1997|L.A. Confidential
+1998|American History X
+1998|Lock, Stock and Two Smoking Barrels
+1998|The Big Lebowski
+2002|The Pianist
+2002|Catch Me If You Can
+2003|Kill Bill: Vol. 1
+2003|Memories of Murder
+2004|Million Dollar Baby
+2004|Hotel Rwanda
+2004|The Incredibles
+2005|V for Vendetta
+2007|No Country for Old Men
+2007|There Will Be Blood
+2007|Into the Wild
+2008|Gran Torino
+2008|Slumdog Millionaire
+2009|The Secret in Their Eyes
+2009|Mary and Max
+2010|How to Train Your Dragon
+2011|A Separation
+2011|Warrior
+2012|The Hunt
+2013|Prisoners
+2013|The Wolf of Wall Street
+2013|12 Years a Slave
+2013|Rush
+2014|Gone Girl
+2014|The Grand Budapest Hotel
+2014|Wild Tales
+2015|Spotlight
+2016|Hacksaw Ridge
+2016|Your Name.
+2016|Dangal
+2017|Three Billboards Outside Ebbing, Missouri
+2018|Green Book
+2018|Capernaum
+2019|Ford v Ferrari
+2019|Klaus
+2021|Spider-Man: No Way Home
+2022|Top Gun: Maverick
+2023|Oppenheimer
+2023|Spider-Man: Across the Spider-Verse
+2024|Dune: Part Two
+1993|Groundhog Day
+1995|Before Sunrise
+1988|My Neighbor Totoro
+1975|Monty Python and the Holy Grail
+1976|Rocky
+1973|The Exorcist
+1967|The Graduate
+1961|Judgment at Nuremberg
+1954|On the Waterfront
+1954|Dial M for Murder
+1949|The Third Man
+1944|Double Indemnity
+1940|Rebecca
+1927|Metropolis
+1925|The Gold Rush
+1926|The General
+1985|Come and See
+1980|The Elephant Man
+1982|The Thing
+1989|Indiana Jones and the Last Crusade
+`.trim().split('\n').map(l => ({ y: l.slice(0, 4), t: l.slice(5) }))
 
 const ROUND = 10, LIVES = 3
-const VOW = 'AEIİOÖUÜÂÎÛ'
 const $ = id => document.getElementById(id)
-const up = s => s.toLocaleUpperCase('tr-TR')
-// Compare guesses without Turkish letters, spaces or punctuation, so an English keyboard works too.
-const fold = s => up(s).replace(/[ÇŞĞİÖÜÂÎÛ]/g, c => 'CSGIOUAIU'['ÇŞĞİÖÜÂÎÛ'.indexOf(c)]).replace(/[^A-Z0-9]/g, '')
+const isVowel = c => 'AEIOU'.includes(c.normalize('NFD')[0])
+// Compare letters only: accents, case, digits, spaces and punctuation don't matter.
+const fold = s => s.normalize('NFD').replace(/\p{M}/gu, '').toUpperCase().replace(/[^A-Z]/g, '')
 const store = {
   get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} },
@@ -291,7 +372,16 @@ function setTheme(dark) {
 setTheme(store.get('sf-dark', false))
 $('theme').onclick = () => { const d = !document.documentElement.classList.contains('dark'); store.set('sf-dark', d); setTheme(d) }
 
-let round, idx, total, results, cur
+// On-screen keyboard: the phone's own keyboard never opens, so the layout stays put.
+const keys = s => [...s].map(k => `<button class="key" data-k="${k}">${k}</button>`).join('')
+$('kb').innerHTML = [
+  keys('QWERTYUIOP'),
+  `<i class="sp"></i>${keys('ASDFGHJKL')}<i class="sp"></i>`,
+  `<i class="sp"></i>${keys('ZXCVBNM')}<button class="key wide" data-k="back" aria-label="Sil">⌫</button>`,
+  '<button class="key hint" data-k="hint" id="hint"></button><button class="key space" data-k=" ">boşluk</button><button class="key go" data-k="enter">Tahmin</button>',
+].map(r => `<div class="kr">${r}</div>`).join('')
+
+let round, idx, total, results, cur, typed = ''
 
 // Prefer films not seen in earlier rounds; start over when too few are left.
 function pickRound() {
@@ -313,15 +403,16 @@ function start() {
 }
 
 function load() {
-  const f = round[idx], chars = [...up(f.t)]
-  const vowels = chars.map((c, i) => VOW.includes(c) ? i : -1).filter(i => i >= 0)
+  const f = round[idx], chars = [...f.t.toUpperCase()]
+  const vowels = chars.map((c, i) => isVowel(c) ? i : -1).filter(i => i >= 0)
   const letters = chars.filter(c => /\p{L}/u.test(c)).length
   // One letter per ~7 letters of title, at least one, never more than the vowels.
   const hints = Math.max(1, Math.min(vowels.length, Math.round(letters / 7)))
   cur = { f, chars, vowels, hints, used: 0, wrong: 0, shown: new Set(), done: false }
-  $('guess').value = ''
-  $('form').hidden = $('tools').hidden = false
-  $('next').hidden = true
+  setTyped('')
+  $('kb').hidden = $('skip').hidden = false
+  $('after').hidden = true
+  $('answer').hidden = false
   msg('')
   render()
 }
@@ -331,24 +422,44 @@ function render() {
   let html = '<span class="w">'
   s.chars.forEach((c, i) => {
     if (c === ' ') html += '</span><span class="w">'
-    else if (!VOW.includes(c)) html += c
+    else if (!isVowel(c)) html += c
     else if (s.shown.has(i)) html += `<span class="v">${c}</span>`
     else if (s.done) html += `<span class="${s.won ? 'v' : 'x'}">${c}</span>`
   })
   $('puzzle').innerHTML = html + '</span>'
-  const words = s.chars.join('').split(' ').length
-  $('tag').textContent = `${s.f.yerli ? 'Yerli' : 'Yabancı'} film · ${words} kelime`
-  $('pos').textContent = `Film ${idx + 1} / ${ROUND}`
+  $('tag').textContent = `${s.f.y} · ${s.f.t.split(' ').length} kelime`
+  $('pos').textContent = `${idx + 1}/${ROUND}`
   $('score').textContent = `${total} puan`
   $('prog').style.width = `${(idx + s.done) / ROUND * 100}%`
   $('hearts').innerHTML = Array.from({ length: LIVES }, (_, i) => `<i class="${i < LIVES - s.wrong ? '' : 'off'}"></i>`).join('')
   const left = s.hints - s.used
-  $('hintleft').textContent = `Harf hakkı ${left}`
-  $('hint').textContent = `Harf al (${left})`
+  $('hint').innerHTML = `Harf al<small>${left} hak</small>`
   $('hint').disabled = left <= 0
 }
 
+function setTyped(t) { typed = t.slice(0, 60); $('answer').textContent = typed }
 function msg(t, cls = '') { $('msg').textContent = t; $('msg').className = cls }
+
+function guess() {
+  const g = fold(typed)
+  if (!g) return
+  if (g === fold(cur.f.t)) return finish(true)
+  cur.wrong++
+  setTyped('')
+  const a = $('answer')
+  a.classList.remove('shake'); void a.offsetWidth; a.classList.add('shake')
+  if (cur.wrong >= LIVES) return finish(false)
+  msg(`Olmadı · ${LIVES - cur.wrong} hakkın kaldı`, 'bad')
+  render()
+}
+
+function hint() {
+  const hidden = cur.vowels.filter(i => !cur.shown.has(i))
+  if (cur.used >= cur.hints || !hidden.length) return
+  cur.shown.add(hidden[Math.random() * hidden.length | 0])
+  cur.used++
+  render()
+}
 
 function finish(won) {
   const s = cur
@@ -356,56 +467,48 @@ function finish(won) {
   const pts = won ? Math.max(10, 100 - 20 * s.used - 25 * s.wrong) : 0
   total += pts
   results.push({ t: s.f.t, pts })
-  $('form').hidden = $('tools').hidden = true
-  $('next').hidden = false
+  $('answer').hidden = true
+  $('kb').hidden = $('skip').hidden = true
+  $('after').hidden = false
   $('next').textContent = idx + 1 < ROUND ? 'Sonraki film →' : 'Sonucu gör →'
-  msg(won ? `Bildin! +${pts}` : s.f.t, won ? 'ok' : 'bad')
-  render()
-  $('next').focus()
-}
-
-$('form').onsubmit = e => {
-  e.preventDefault()
-  const g = fold($('guess').value)
-  if (!g || cur.done) return
-  if (g === fold(cur.f.t)) return finish(true)
-  cur.wrong++
-  $('guess').value = ''
-  const card = $('card')
-  card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake')
-  if (cur.wrong >= LIVES) return finish(false)
-  msg(`Olmadı. ${LIVES - cur.wrong} hakkın kaldı.`, 'bad')
+  msg(won ? `Bildin · +${pts} puan` : 'Bu sefer olmadı', won ? 'ok' : 'bad')
   render()
 }
 
-$('hint').onclick = () => {
-  const hidden = cur.vowels.filter(i => !cur.shown.has(i))
-  if (cur.done || cur.used >= cur.hints || !hidden.length) return
-  cur.shown.add(hidden[Math.random() * hidden.length | 0])
-  cur.used++
-  render()
-  $('guess').focus()
+function next() { if (++idx < ROUND) load(); else end() }
+
+function press(k) {
+  if (!cur || cur.done) return
+  if (k === 'enter') guess()
+  else if (k === 'back') setTyped(typed.slice(0, -1))
+  else if (k === 'hint') hint()
+  else if (k === 'skip') finish(false)
+  else if (k !== ' ' || (typed && !typed.endsWith(' '))) setTyped(typed + k.toUpperCase())
 }
 
-$('skip').onclick = () => finish(false)
-
-$('next').onclick = () => {
-  if (++idx < ROUND) { load(); $('guess').focus() } else end()
-}
+$('kb').onclick = e => { const b = e.target.closest('[data-k]'); if (b && !b.disabled) press(b.dataset.k) }
+$('skip').onclick = () => press('skip')
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || $('play').hidden) return
+  if (cur.done) { if (e.key === 'Enter') { e.preventDefault(); next() } return }
+  const k = e.key === 'Enter' ? 'enter' : e.key === 'Backspace' ? 'back' : e.key === 'Escape' ? 'skip' : e.key.length === 1 ? e.key : null
+  if (k) { e.preventDefault(); press(k) }
+})
 
 function end() {
   const best = Math.max(store.get('sf-best', 0), total)
   store.set('sf-best', best)
-  $('total').textContent = `${total} puan`
-  $('endbest').textContent = `${results.filter(r => r.pts).length} / ${ROUND} film · en iyi ${best}`
+  $('total').textContent = `${total}`
+  $('endbest').textContent = `puan · ${results.filter(r => r.pts).length}/${ROUND} film · en iyi ${best}`
   $('list').innerHTML = results.map(r => `<li><span>${r.pts ? '✓' : '✗'} ${r.t}</span><span class="mono">${r.pts ? '+' + r.pts : '—'}</span></li>`).join('')
   show('end')
 }
 
 const best = store.get('sf-best', 0)
-if (best) $('best').textContent = `En iyi skorun: ${best} / ${ROUND * 100}`
+if (best) $('best').textContent = `En iyi skorun ${best} / ${ROUND * 100}`
 $('go').onclick = start
 $('again').onclick = start
+$('next').onclick = next
 </script>
 </body>
 </html>
