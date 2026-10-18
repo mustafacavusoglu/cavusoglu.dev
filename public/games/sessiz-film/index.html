@@ -32,6 +32,9 @@ section{flex:1;min-height:0;display:flex;flex-direction:column}
 h1{font-size:34px;font-weight:600;letter-spacing:-.03em;margin:0 0 8px}
 .lead{color:var(--body);margin:0 0 26px;max-width:340px}
 .demo{font-size:24px!important;margin:0 0 10px!important}
+.seg{display:flex;width:100%;max-width:300px;padding:4px;margin:0 0 30px;border-radius:12px;background:var(--soft)}
+.seg button{flex:1;height:38px;border-radius:9px;font-size:15px;color:var(--muted)}
+.seg button.on{background:var(--bg);color:var(--ink);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .rules{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
 .rules div{background:var(--soft);border-radius:14px;padding:14px 6px}
 .rules b{display:block;font-size:22px;font-weight:600}
@@ -129,10 +132,11 @@ h2{font-size:26px;font-weight:600;letter-spacing:-.02em;margin:0 0 20px}
 
   <section id="start">
     <div class="stage">
+      <div class="seg" id="cat" role="tablist"><button data-c="genel">Genel</button><button data-c="tr">Türkçe</button></div>
       <div class="pz demo" id="demo"></div>
-      <p class="tag" style="margin:0 0 28px">The Godfather · 1972</p>
+      <p class="tag" id="demotag" style="margin:0 0 28px"></p>
       <h1>Sesli harfler gitti.</h1>
-      <p class="lead">IMDb Top 250'den filmler, sadece sessiz harfleriyle. Boşluklara sesli harfleri koy, filmi bul.</p>
+      <p class="lead" id="lead"></p>
       <div class="rules">
         <div><b>10</b><span>film her turda</span></div>
         <div><b>3</b><span>hak her filmde</span></div>
@@ -415,16 +419,103 @@ const FILMS = `
 1989|Indiana Jones and the Last Crusade
 `.trim().split('\n').map(l => ({ y: l.slice(0, 4), t: l.slice(5) }))
 
+// Turkish films (year|title), played with the Turkish vowels A E I İ O Ö U Ü.
+const TR_FILMS = `
+1996|Eşkıya
+2005|Babam ve Oğlum
+2001|Vizontele
+2004|Vizontele Tuuba
+1975|Hababam Sınıfı
+1975|Hababam Sınıfı Sınıfta Kaldı
+1976|Hababam Sınıfı Uyanıyor
+1977|Hababam Sınıfı Tatilde
+1976|Tosun Paşa
+1977|Selvi Boylum Al Yazmalım
+1976|Süt Kardeşler
+1978|Neşeli Günler
+1978|Çöpçüler Kralı
+1978|Kibar Feyzo
+1985|Züğürt Ağa
+1987|Muhsin Bey
+1998|Her Şey Çok Güzel Olacak
+2005|Gönül Yarası
+2008|Issız Adam
+2015|Mucize
+2011|Dedemin İnsanları
+2013|Kelebeğin Rüyası
+2018|Müslüm
+2005|Organize İşler
+2008|Recep İvedik
+2013|Düğün Dernek
+2010|Yahşi Batı
+2006|Hokkabaz
+2014|Kış Uykusu
+2018|Ahlat Ağacı
+2011|Bir Zamanlar Anadolu'da
+2008|Üç Maymun
+1997|Masumiyet
+1997|Ağır Roman
+2006|Kurtlar Vadisi Irak
+2010|Eyyvah Eyvah
+2009|Kolpaçino
+2017|Aile Arasında
+2018|Ölümlü Dünya
+2022|Bergen
+2015|Kocan Kadar Konuş
+2011|Aşk Tesadüfleri Sever
+2007|Kutsal Damacana
+2005|Pardon
+2013|Hükümet Kadın
+1982|Çiçek Abbas
+1977|Gülen Gözler
+1980|Banker Bilo
+1977|Şaban Oğlu Şaban
+1974|Mavi Boncuk
+1976|Kapıcılar Kralı
+1981|Davaro
+1973|Sev Kardeşim
+1999|Propaganda
+2008|Sonbahar
+2006|İklimler
+2007|Yumurta
+2023|Kuru Otlar Üstüne
+2010|Av Mevsimi
+2011|Kaybedenler Kulübü
+2010|Romantik Komedi
+2012|Kurtuluş Son Durak
+2006|Dondurmam Gaymak
+2007|Beyaz Melek
+2007|Kabadayı
+2004|Yazı Tura
+2009|Nefes: Vatan Sağolsun
+2012|Fetih 1453
+1975|Bizim Aile
+2008|Hayat Var
+2019|7. Koğuştaki Mucize
+1984|Namuslu
+1984|Postacı
+1984|Atla Gel Şaban
+1980|Zübük
+1983|Tokatçı
+1979|Şark Bülbülü
+1990|Abuk Sabuk Bir Film
+2009|Vavien
+2016|Hep Yek
+2015|Ali Baba ve 7 Cüceler
+2013|Sen Aydınlatırsın Geceyi
+2016|Ekşi Elmalar
+`.trim().split('\n').map(l => ({ y: l.slice(0, 4), t: l.slice(5), tr: true }))
+const LISTS = { genel: FILMS, tr: TR_FILMS }
+
 const ROUND = 10, LIVES = 3, MAXP = 5
 const $ = id => document.getElementById(id)
 const isVowel = c => 'AEIOU'.includes(c.normalize('NFD')[0])
-// Compare letters only: accents, case, digits, spaces and punctuation don't matter.
-const fold = s => s.normalize('NFD').replace(/\p{M}/gu, '').toUpperCase().replace(/[^A-Z]/g, '')
 const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)
 const store = {
   get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} },
 }
+let cat = LISTS[store.get('sf-cat')] ? store.get('sf-cat') : 'genel'
 
 // Theme: light by default, the choice is remembered.
 function setTheme(dark) {
@@ -436,16 +527,16 @@ setTheme(store.get('sf-dark', false))
 $('theme').onclick = () => { const d = !document.documentElement.classList.contains('dark'); store.set('sf-dark', d); setTheme(d) }
 
 // Vowel pad: the consonants are given, so you only fill the blanks. The phone's keyboard never opens.
-$('kb').innerHTML = `<div class="kr">${[...'AEIOU'].map(k => `<button class="key vow" data-k="${k}">${k}</button>`).join('')}</div>
+$('kb').innerHTML = `<div class="kr" id="vow"></div>
 <div class="kr"><button class="key hint" data-k="hint" id="hint"></button><button class="key" data-k="left" aria-label="Önceki boşluk">‹</button><button class="key" data-k="right" aria-label="Sonraki boşluk">›</button><button class="key" data-k="back" aria-label="Sil">⌫</button><button class="key go" data-k="enter">Tahmin</button></div>`
 
 let round, idx, total, results, cur
 
 // Prefer films not seen in earlier rounds; start over when too few are left.
-function pickRound() {
+function pickRound(list) {
   const seen = new Set(store.get('sf-seen', []))
-  let pool = FILMS.filter(f => !seen.has(f.t))
-  if (pool.length < ROUND) { seen.clear(); pool = FILMS.slice() }
+  let pool = list.filter(f => !seen.has(f.t))
+  if (pool.length < ROUND) { for (const f of list) seen.delete(f.t); pool = list.slice() }
   for (let i = pool.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [pool[i], pool[j]] = [pool[j], pool[i]] }
   const r = pool.slice(0, ROUND)
   r.forEach(f => seen.add(f.t))
@@ -456,20 +547,22 @@ function pickRound() {
 function show(id) { for (const s of ['start', 'online', 'lobby', 'play', 'end']) $(s).hidden = s !== id }
 
 function start() {
-  round = pickRound(); idx = 0; total = 0; results = []
+  round = pickRound(LISTS[cat]); idx = 0; total = 0; results = []
   show('play'); load(round[idx])
 }
 
 function load(f) {
-  // Plain A–Z on screen (Léon → LEON), so every blank is one of the five pad keys.
-  const chars = [...f.t.normalize('NFD').replace(/\p{M}/gu, '').toUpperCase()]
+  // Turkish titles keep İ/I, Ö, Ü; others go plain A–Z (Léon → LEON), so every blank is a pad key.
+  const chars = [...(f.tr ? f.t.toLocaleUpperCase('tr-TR') : f.t.normalize('NFD').replace(/\p{M}/gu, '').toUpperCase())]
+  const pad = f.tr ? 'AEIİOÖUÜ' : 'AEIOU'
+  $('vow').innerHTML = [...pad].map(k => `<button class="key vow" data-k="${k}">${k}</button>`).join('')
   const vowels = chars.map((c, i) => isVowel(c) ? i : -1).filter(i => i >= 0)
   const letters = chars.filter(c => /\p{L}/u.test(c)).length
   // One letter per ~7 letters of title, at least one, but never every vowel.
   const hints = Math.min(vowels.length - 1, Math.max(1, Math.round(letters / 7)))
   // Race time: 8 s plus one per letter, 10–30 s.
   const dur = Math.max(10, Math.min(30, 8 + letters))
-  cur = { f, chars, vowels, hints, dur, used: 0, wrong: 0, shown: new Set(), fill: {}, at: vowels[0], done: false }
+  cur = { f, chars, vowels, hints, dur, used: 0, wrong: 0, pad, shown: new Set(), fill: {}, at: vowels[0], done: false }
   $('kb').hidden = false
   $('after').hidden = true
   $('timer').classList.remove('low')
@@ -533,7 +626,7 @@ const points = () => Math.max(10, 100 - 20 * cur.used - 25 * cur.wrong)
 function guess() {
   const b = blanks()
   if (b.some(i => !cur.fill[i])) return msg('Önce tüm boşlukları doldur', 'bad')
-  if (b.every(i => fold(cur.fill[i]) === fold(cur.chars[i]))) {
+  if (b.every(i => cur.fill[i] === cur.chars[i])) {
     if (!NET) return finish(true)
     // Race: the host decides who was first.
     cur.sent = true
@@ -554,9 +647,10 @@ function guess() {
 }
 
 function hint() {
-  const hidden = cur.vowels.filter(i => !cur.shown.has(i))
-  if (cur.used >= cur.hints || !hidden.length) return
-  const i = hidden[Math.random() * hidden.length | 0]
+  // Reveal an empty or wrong blank, never one you already got right (unless that's all that's left).
+  const open = blanks(), miss = open.filter(i => cur.fill[i] !== cur.chars[i]), pool = miss.length ? miss : open
+  if (cur.used >= cur.hints || !pool.length) return
+  const i = pool[Math.random() * pool.length | 0]
   cur.shown.add(i)
   delete cur.fill[i]
   cur.used++
@@ -589,7 +683,7 @@ function press(k) {
   if (k === 'back') back()
   else if (k === 'left') move(-1)
   else if (k === 'right') move(1)
-  else if (/^[AEIOU]$/.test(fold(k))) put(fold(k))
+  else if (cur.pad.includes(k = cur.f.tr ? k.toLocaleUpperCase('tr-TR') : k.toUpperCase()) && k.length === 1) put(k)
   else return
   render()
 }
@@ -720,14 +814,15 @@ function got(from, i, pts) {
 function resolve() { S.phase = 'res'; H.nextAt = Date.now() + 4000; push() }
 function race() {
   if (!NET?.host || Object.keys(S.players).length < 2) return
-  S.round = pickRound().map(f => FILMS.indexOf(f))
+  S.cat = cat
+  S.round = pickRound(LISTS[cat]).map(f => LISTS[cat].indexOf(f))
   S.idx = 0
   S.game = (S.game || 0) + 1
   for (const p of Object.values(S.players)) p.score = 0
   beginFilm()
 }
 function beginFilm() {
-  load(FILMS[S.round[S.idx]]) // sets cur.dur
+  load(LISTS[S.cat][S.round[S.idx]]) // sets cur.dur
   cur.key = `${S.game}:${S.idx}`
   H.endsAt = Date.now() + cur.dur * 1000
   S.phase = 'film'; S.winner = null; S.pts = 0
@@ -745,7 +840,7 @@ function applyS(s) {
   if (s.phase === 'lobby') return renderLobby()
   if (s.phase === 'end') return raceEnd()
   const key = `${s.game}:${s.idx}`
-  if (!cur || cur.key !== key) { load(FILMS[s.round[s.idx]]); cur.key = key }
+  if (!cur || cur.key !== key) { load(LISTS[s.cat][s.round[s.idx]]); cur.key = key }
   show('play')
   if (s.phase === 'film') endsAt = Date.now() + s.left
   else if (!cur.done) {
@@ -768,8 +863,8 @@ function renderLobby() {
     + '<li class="empty">—</li>'.repeat(MAXP - ps.length)
   $('race').hidden = !NET.host
   $('race').disabled = ps.length < 2
-  $('lnote').textContent = !NET.host ? 'Kurucunun yarışı başlatması bekleniyor…'
-    : ps.length < 2 ? 'En az 2 oyuncu gerekli · kodu paylaş' : `${ps.length} oyuncu hazır`
+  $('lnote').textContent = (!NET.host ? 'Kurucunun yarışı başlatması bekleniyor…'
+    : ps.length < 2 ? 'En az 2 oyuncu gerekli · kodu paylaş' : `${ps.length} oyuncu hazır`) + (NET.host ? ` · ${cat === 'tr' ? 'Türkçe' : 'Genel'} filmler` : '')
 }
 
 function raceEnd() {
@@ -804,7 +899,17 @@ $('share').onclick = async () => {
 
 const best = store.get('sf-best', 0)
 if (best) $('best').textContent = `Tek başına en iyi skorun ${best} / ${ROUND * 100}`
-$('demo').innerHTML = slots([...'THE GODFATHER'], i => i === 8 ? ['v', 'A'] : ['', ''])
+function setCat(c) {
+  cat = c
+  store.set('sf-cat', c)
+  for (const b of $('cat').children) b.classList.toggle('on', b.dataset.c === c)
+  const [t, y, i] = c === 'tr' ? ['BABAM VE OĞLUM', 'Babam ve Oğlum · 2005', 1] : ['THE GODFATHER', 'The Godfather · 1972', 8]
+  $('demo').innerHTML = slots([...t], j => j === i ? ['v', t[j]] : ['', ''])
+  $('demotag').textContent = y
+  $('lead').textContent = (c === 'tr' ? "Yeşilçam'dan bugüne Türk filmleri" : "IMDb Top 250'den filmler") + ', sesli harfleri silinmiş. Boşluklara sesli harfleri koy, filmi bul.'
+}
+setCat(cat)
+$('cat').onclick = e => { const b = e.target.closest('[data-c]'); if (b) setCat(b.dataset.c) }
 $('go').onclick = start
 $('mk').onclick = () => online(true)
 $('jn').onclick = () => online(false)
