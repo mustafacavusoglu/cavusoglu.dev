@@ -11,8 +11,8 @@ export default function GamesPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-[880px] px-6 pt-16 pb-24">
-        <h1 className="mb-3 text-[32px] font-semibold tracking-tight">Games</h1>
+      <main className="mx-auto max-w-[880px] px-5 pt-10 pb-16 sm:px-6 sm:pt-16 sm:pb-24">
+        <h1 className="mb-3 text-[28px] font-semibold tracking-tight sm:text-[32px]">Games</h1>
         <p className="mb-8 max-w-[580px] leading-relaxed text-body">
           Games I build on the side. They run in the browser, no sign-up; your progress stays on your device.
         </p>

@@ -35,20 +35,26 @@ const games = [
 /** Screenshot cards; each opens the game. Progress is saved in the player's browser. */
 export function GameGrid() {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+    <div className="flex flex-col sm:grid sm:grid-cols-3 sm:gap-4">
       {games.map((g) => (
-        <a key={g.slug} href={`/games/${g.slug}/`} className="group flex flex-col">
+        <a
+          key={g.slug}
+          href={`/games/${g.slug}/`}
+          className="group flex gap-4 border-t border-line-soft py-4 first:border-0 first:pt-0 sm:flex-col sm:gap-0 sm:border-0 sm:py-0"
+        >
           <img
             src={`/games/thumbs/${g.slug}.jpg`}
             alt={`${g.name} screenshot`}
             width={600}
             height={800}
             loading="lazy"
-            className="aspect-[3/4] w-full rounded-lg border border-line object-cover transition group-hover:border-ink group-hover:shadow-md"
+            className="aspect-[3/4] w-[84px] shrink-0 rounded-lg border border-line object-cover transition group-hover:border-ink group-hover:shadow-md sm:w-full"
           />
-          <div className="mt-3 font-mono text-[15px] font-medium group-hover:text-accent">{g.name}</div>
-          <div className="mt-1 text-sm leading-relaxed text-body">{g.desc}</div>
-          <div className="mt-1.5 font-mono text-xs text-muted">{g.tag}</div>
+          <div className="min-w-0">
+            <div className="font-mono text-[15px] font-medium group-hover:text-accent sm:mt-3">{g.name}</div>
+            <div className="mt-1 text-sm leading-relaxed text-body">{g.desc}</div>
+            <div className="mt-1.5 font-mono text-xs text-muted">{g.tag}</div>
+          </div>
         </a>
       ))}
     </div>
