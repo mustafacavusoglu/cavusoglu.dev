@@ -5,6 +5,15 @@
   "name": "cavusoglu-dev",
   "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
+  // Only cavusoglu.dev, where Access sits in front; no *.workers.dev or preview URL that skips it.
+  "workers_dev": false,
+  "preview_urls": false,
+  // Cloudflare Access (Zero Trust) team name and the AUD tag of each Access application. Not secrets.
+  "vars": {
+    "ACCESS_TEAM": "TODO",
+    "AUD_HMDB": "TODO",
+    "AUD_WORDS": "TODO"
+  },
   "assets": {
     "directory": "./out",
     "binding": "ASSETS",
@@ -14,11 +23,13 @@
   "durable_objects": {
     "bindings": [
       { "name": "ROOMS", "class_name": "Room" },
-      { "name": "HMDB", "class_name": "Hmdb" }
+      { "name": "HMDB", "class_name": "Hmdb" },
+      { "name": "WORDS", "class_name": "Words" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["Room"] },
-    { "tag": "v2", "new_sqlite_classes": ["Hmdb"] }
+    { "tag": "v2", "new_sqlite_classes": ["Hmdb"] },
+    { "tag": "v3", "new_sqlite_classes": ["Words"] }
   ]
 }

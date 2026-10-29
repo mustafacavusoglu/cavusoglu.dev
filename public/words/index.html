@@ -155,7 +155,7 @@ h4{margin:22px 0 10px;font-size:13px;font-weight:500;color:var(--muted);text-tra
     <div class="chips tabs" id="tabs"></div>
     <input class="search" id="q" type="search" placeholder="Kelime ara (İngilizce ya da Türkçe)" autocomplete="off">
     <div class="list" id="list"></div>
-    <p class="foot muted">İlerleme sadece bu cihazın tarayıcısında tutulur. Kelimeler: <a href="https://www.oxfordlearnersdictionaries.com/wordlists/oxford3000-5000" target="_blank" rel="noopener">Oxford 3000 &amp; 5000</a> ve Coxhead'in <a href="https://www.wgtn.ac.nz/lals/resources/academicwordlist" target="_blank" rel="noopener">Academic Word List</a>. Tanım, çeviri ve örnekler yapay zekâ ile üretildi; hata görürsen haber ver.<br><button class="reset" id="reset">İlerlemeyi sıfırla</button></p>
+    <p class="foot muted">İlerleme hesabında tutulur, her cihazdan aynı. Kelimeler: <a href="https://www.oxfordlearnersdictionaries.com/wordlists/oxford3000-5000" target="_blank" rel="noopener">Oxford 3000 &amp; 5000</a> ve Coxhead'in <a href="https://www.wgtn.ac.nz/lals/resources/academicwordlist" target="_blank" rel="noopener">Academic Word List</a>. Tanım, çeviri ve örnekler yapay zekâ ile üretildi; hata görürsen haber ver.<br><button class="reset" id="reset">İlerlemeyi sıfırla</button></p>
   </section>
 </div>
 
@@ -182,13 +182,23 @@ const FILTERS = [['all', 'Hepsi'], ['a', 'A1–A2'], ['b1', 'B1'], ['b2', 'B2'],
 const inFilter = (w, f) => f === 'all' || (f === 'awl' ? w.awl > 0 : f === 'a' ? w.lvl[0] === 'a' : w.lvl === f)
 
 let W = []                                // {w, pos, lvl, awl, en, tr, ex}
-let S = store.get('w-state', {})          // word -> [box, due, right, wrong]
-let LOG = store.get('w-log', {})          // 'YYYY-MM-DD' -> [answered, right]
+let S = {}                                // word -> [box, due, right, wrong]; lives in /api/words
+let LOG = {}                              // 'YYYY-MM-DD' -> [answered, right]
+let PEND = store.get('w-pending', { s: {}, log: {} })   // answers the server has not confirmed yet
 let F = store.get('w-filter', 'b2')
 let cur = null, answered = false, tab = 'l', flipT = 0
 
 const today = () => new Date().toLocaleDateString('sv')
-const save = () => { store.set('w-state', S); store.set('w-log', LOG) }
+// Send the answers not yet on the server. Kept in localStorage until the server says ok, so a dropped
+// connection or an expired sign-in loses nothing; the next answer or page load sends them again.
+function sync() {
+  const body = PEND
+  PEND = { s: {}, log: {} }
+  store.set('w-pending', body)
+  fetch('/api/words', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    .then(r => { if (!r.ok) throw r.status; store.set('w-pending', PEND) })
+    .catch(() => { PEND = { s: { ...body.s, ...PEND.s }, log: { ...body.log, ...PEND.log } }; store.set('w-pending', PEND) })
+}
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]] } return a }
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 const lvlName = w => w.lvl === '-' ? 'AWL' : w.lvl.toUpperCase()
@@ -200,7 +210,8 @@ function record(w, right) {
   s[right ? 2 : 3]++
   S[w.w] = s
   const d = LOG[today()] || [0, 0]; d[0]++; if (right) d[1]++; LOG[today()] = d
-  save()
+  PEND.s[w.w] = s; PEND.log[today()] = d
+  sync()
 }
 
 function pick() {
@@ -336,11 +347,35 @@ function view(st) {
   $('stats').scrollTop = 0
 }
 $('statsBtn').onclick = () => view($('stats').hidden)
-$('reset').onclick = () => { if (confirm('Tüm ilerleme silinsin mi?')) { S = {}; LOG = {}; save(); stats(); show(pick()) } }
+$('reset').onclick = () => {
+  if (!confirm('Tüm ilerleme silinsin mi?')) return
+  fetch('/api/words/reset', { method: 'POST' }).then(r => {
+    if (!r.ok) throw 0
+    S = {}; LOG = {}; PEND = { s: {}, log: {} }; store.set('w-pending', PEND); stats(); show(pick())
+  }).catch(() => alert('Sunucuya ulaşılamadı, ilerleme silinmedi.'))
+}
 
-fetch('/words/words.json').then(r => r.json()).then(rows => {
+const answers = s => s[2] + s[3]
+Promise.all([
+  fetch('/words/words.json').then(r => r.json()),
+  fetch('/api/words', { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(r.status)),
+]).then(([rows, srv]) => {
   W = rows.map(([w, pos, lvl, awl, en, tr, ex]) => ({ w, pos, lvl, awl, en, tr, ex }))
+  S = { ...srv.s, ...PEND.s }; LOG = { ...srv.log, ...PEND.log }
+  // one-time move of progress that used to live only in this browser: keep whichever side has more answers
+  const oldS = store.get('w-state', null), oldLog = store.get('w-log', {})
+  if (oldS) {
+    for (const [w, v] of Object.entries(oldS)) if (!S[w] || answers(v) > answers(S[w])) S[w] = PEND.s[w] = v
+    for (const [d, v] of Object.entries(oldLog)) if (!LOG[d] || v[0] > LOG[d][0]) LOG[d] = PEND.log[d] = v
+    store.set('w-pending', PEND)
+    try { localStorage.removeItem('w-state'); localStorage.removeItem('w-log') } catch {}
+  }
+  if (Object.keys(PEND.s).length || Object.keys(PEND.log).length) sync()
   chips(); show(pick())
+}).catch(() => {
+  $('cardWrap').hidden = true; $('empty').hidden = false
+  $('empty').querySelector('h2').textContent = 'Bağlanılamadı'
+  $('emptyText').textContent = 'İlerlemen sunucuda tutuluyor. İnternetini kontrol edip sayfayı yenile.'
 })
 </script>
 </body>

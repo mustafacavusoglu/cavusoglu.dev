@@ -2,8 +2,11 @@
 // /api/room/<code> opens a WebSocket into one Durable Object per room code: the relay for Hayatta Kal co-op
 // and Sessiz Film races (which prefix their codes with SF).
 // /api/hmdb/* is the hidden /hmdb film log: one Durable Object ("hmdb") holds every film and its ratings.
+// /api/words is the /words flashcard progress: one Durable Object per signed-in email.
+// Both sit behind Cloudflare Access; see access.js.
 
 import { DurableObject } from "cloudflare:workers";
+import { accessEmail } from "./access.js";
 
 const MAX = 4; // default room size; a game may ask for up to 5 with ?max=
 const pid = (ws) => ws.deserializeAttachment();
@@ -156,12 +159,60 @@ async function hmdb(req, env, path) {
   return json({ error: "not found" }, 404);
 }
 
+// ---- words ----
+
+// Keys: "w:<word>" -> [box, due ms, right, wrong]; "d:<YYYY-MM-DD>" -> [answered, right]
+export class Words extends DurableObject {
+  async get() {
+    const s = {}, log = {};
+    for (const [k, v] of await this.ctx.storage.list()) (k[0] === "w" ? s : log)[k.slice(2)] = v;
+    return { s, log };
+  }
+  async put(entries) {
+    for (let i = 0; i < entries.length; i += 128) await this.ctx.storage.put(Object.fromEntries(entries.slice(i, i + 128)));
+  }
+  async reset() {
+    await this.ctx.storage.deleteAll();
+  }
+}
+
+const nums = (v, n) => Array.isArray(v) && v.length === n && v.every((x) => Number.isFinite(x) && x >= 0);
+
+async function words(req, db, path) {
+  const json = (data, status = 200) => Response.json(data, { status, headers: { "cache-control": "no-store" } });
+  if (req.method === "GET" && path === "") return json(await db.get());
+  if (req.method === "POST" && path === "/reset") return await db.reset(), json({ ok: true });
+  if (req.method !== "POST" || path !== "") return json({ error: "not found" }, 404);
+  let b;
+  try {
+    b = await req.json();
+  } catch {
+    return json({ error: "bad json" }, 400);
+  }
+  const s = Object.entries(b?.s ?? {}), log = Object.entries(b?.log ?? {});
+  if (s.length + log.length > 6000) return json({ error: "too many" }, 400);
+  if (!s.every(([w, v]) => w.length <= 40 && nums(v, 4)) || !log.every(([d, v]) => /^\d{4}-\d\d-\d\d$/.test(d) && nums(v, 2)))
+    return json({ error: "bad entry" }, 400);
+  await db.put([...s.map(([w, v]) => ["w:" + w, v]), ...log.map(([d, v]) => ["d:" + d, v])]);
+  return json({ ok: true });
+}
+
+// `wrangler dev` has no Access in front of it; Cloudflare never routes a real request with this hostname.
+const signedIn = (req, env, aud) =>
+  new URL(req.url).hostname === "localhost" ? "dev@localhost" : accessEmail(req, env.ACCESS_TEAM, aud);
+
 export default {
-  fetch(req, env) {
+  async fetch(req, env) {
     const path = new URL(req.url).pathname;
     const m = path.match(/^\/api\/room\/([A-Z0-9]{4,8})$/);
     if (m) return env.ROOMS.get(env.ROOMS.idFromName(m[1])).fetch(req);
-    if (path === "/api/hmdb" || path.startsWith("/api/hmdb/")) return hmdb(req, env, path.slice(9));
+    const area = path.match(/^\/api\/(hmdb|words)(\/.*)?$/);
+    if (area) {
+      const email = await signedIn(req, env, area[1] === "hmdb" ? env.AUD_HMDB : env.AUD_WORDS);
+      if (!email) return Response.json({ error: "sign in" }, { status: 403 });
+      if (area[1] === "hmdb") return hmdb(req, env, area[2] ?? "");
+      return words(req, env.WORDS.get(env.WORDS.idFromName(email.toLowerCase())), area[2] ?? "");
+    }
     return env.ASSETS.fetch(req);
   },
 };
