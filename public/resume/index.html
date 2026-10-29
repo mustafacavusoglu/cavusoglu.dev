@@ -28,6 +28,13 @@ select{height:38px;max-width:220px;border:1px solid var(--line);border-radius:10
 .btn{height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--line);font-size:14px;white-space:nowrap}
 .btn:hover{border-color:var(--ink)}
 .btn.dark{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.on{border-color:var(--ink);background:var(--soft);font-weight:500}
+.size{display:flex;align-items:center;height:38px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.size button{width:34px;height:100%;font-size:13px;font-weight:500;color:var(--body)}
+.size button:hover{background:var(--soft);color:var(--ink)}
+.size span{min-width:44px;text-align:center;font:12px "IBM Plex Mono",monospace;color:var(--muted)}
+.pages{font-size:12px;color:var(--muted);text-align:center;margin:0 0 10px}
+.pages.bad{color:var(--bad)}
 .sp{flex:1}
 .status{font-size:12px;color:var(--muted);white-space:nowrap}
 .status.bad{color:var(--bad)}
@@ -67,6 +74,10 @@ details.menu summary::-webkit-details-marker{display:none}
 
 /* the paper: always black on white, ported from resumeGen */
 .paper{width:210mm;min-height:297mm;margin:0 auto;padding:1.5cm 1.8cm;background:#fff;color:#1a1a1a;box-shadow:0 1px 8px rgba(0,0,0,.12);font:10pt/1.35 "Helvetica Neue",Helvetica,Arial,sans-serif;transform-origin:top left}
+.paper .flow{display:flow-root}
+/* "Tek sayfa", step one: less air between lines, sections and bullets */
+.paper .flow.tight{line-height:1.25}.paper .tight h2{margin:9px 0 4px}.paper .tight hr{margin:6px 0}
+.paper .tight ul{margin:1px 0 4px}.paper .tight li{margin:0}.paper .tight p{margin:1px 0}
 .paper h1{font-size:20pt;margin:0 0 2px;color:#111;letter-spacing:.3px}
 .paper h2{font-size:11pt;color:#2c3e50;border-bottom:1.2px solid #3498db;padding-bottom:2px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.8px}
 .paper h3{font-size:10.5pt;margin:0 0 2px;color:#222}
@@ -90,7 +101,7 @@ details.menu summary::-webkit-details-marker{display:none}
 @page{size:A4;margin:1.5cm 1.8cm}
 @media print{
   html,body,.app{height:auto;background:#fff}
-  header,.edit,.empty{display:none!important}
+  header,.edit,.empty,.pages{display:none!important}
   .panes{display:block}
   .view{display:block!important;overflow:visible;background:none;padding:0}
   .paper{width:auto;min-height:0;padding:0;box-shadow:none;zoom:1!important}
@@ -105,6 +116,8 @@ details.menu summary::-webkit-details-marker{display:none}
     <span class="status" id="status"></span>
     <span class="sp"></span>
     <div class="seg" id="seg"><button data-t="edit" class="on">Düzenle</button><button data-t="view">Önizle</button></div>
+    <div class="size" title="Yazı boyutu"><button id="smaller" aria-label="Yazıyı küçült">A−</button><span id="sizeV">%100</span><button id="bigger" aria-label="Yazıyı büyüt">A+</button></div>
+    <button class="btn" id="one" aria-pressed="false" title="Sığıyorsa her şeyi biraz küçültüp tek sayfaya indirir">Tek sayfa</button>
     <button class="btn dark" id="pdf">PDF</button>
     <details class="menu" id="menu">
       <summary class="icon" aria-label="Diğer">⋯</summary>
@@ -122,7 +135,7 @@ details.menu summary::-webkit-details-marker{display:none}
 
   <main class="panes" id="panes" data-tab="edit">
     <div class="edit"><textarea id="md"></textarea></div>
-    <div class="view" id="view"><article class="paper" id="paper"></article></div>
+    <div class="view" id="view"><div class="pages" id="pages"></div><article class="paper" id="paper"></article></div>
     <div class="empty" id="empty" hidden>
       <h2>Henüz CV yok</h2>
       <p>Boş bir şablonla başla ya da elindeki Markdown CV'yi yükle.</p>
@@ -228,7 +241,7 @@ function render() {
   // uppercase headings follow the CV's language ("EXPERIENCE" / "EĞİTİM"): Turkish when most sections say so
   const secs = md.match(/^## .*/gm) ?? []
   $('paper').lang = secs.length && secs.filter(h => /[çğıöşüİ]/i.test(h)).length * 2 >= secs.length ? 'tr' : 'en'
-  $('paper').innerHTML = marked.parse(md)
+  $('paper').innerHTML = `<div class="flow">${marked.parse(md)}</div>`
   fit()
 }
 // shrink the A4 sheet to the pane width on phones
@@ -236,8 +249,44 @@ function fit() {
   const p = $('paper'), w = $('view').clientWidth - 16
   p.style.zoom = ''
   if (w > 0 && p.offsetWidth > w) p.style.zoom = w / p.offsetWidth
+  onePage()
 }
 addEventListener('resize', fit)
+
+// Text size is the CV's own setting (A− / A+, 80–120%). "Tek sayfa" starts from it: first tighten the spacing,
+// then scale everything down in 2% steps until the CV fits one A4 page. The print area is
+// 174 x 267 mm (A4 minus the margins), so pages = content height / width / (267 / 174), at any zoom.
+const MIN_SCALE = 0.88   // 10pt body text never goes below 8.8pt; past that it is too cramped to send
+function onePage() {
+  const f = $('paper').querySelector('.flow')
+  if (!f || !cur) return
+  const base = cur.size || 100
+  f.style.zoom = base / 100; f.classList.remove('tight')
+  const pages = () => { const r = f.getBoundingClientRect(); return r.width ? r.height / r.width / (267 / 174) : 0 }
+  let n = pages(), k = base, note = ''
+  $('sizeV').textContent = '%' + base
+  if (!n) return
+  if (cur.fit && n > 1) {
+    f.classList.add('tight')
+    while (k > MIN_SCALE * 100 && pages() > 0.99) f.style.zoom = (k -= 2) / 100
+    if (pages() > 0.99) { f.style.zoom = base / 100; f.classList.remove('tight'); k = base; note = 'Tek sayfaya sığmıyor, çok sıkışık olurdu' }
+    n = pages()
+  }
+  const count = Math.max(1, Math.ceil(n - 0.01)), squeezed = f.classList.contains('tight')
+  $('sizeV').textContent = '%' + k
+  $('pages').textContent = note ? `${note} · ${count} sayfa`
+    : `${count} sayfa` + (squeezed ? ` · tek sayfaya sığdırıldı (boşluklar sıkıştı${k < base ? `, yazı %${k}` : ''})` : '')
+  $('pages').classList.toggle('bad', !!note)
+  $('one').classList.toggle('on', !!cur.fit)
+  $('one').setAttribute('aria-pressed', !!cur.fit)
+}
+$('one').onclick = () => { if (!cur) return; cur.fit = !cur.fit; render(); save() }
+const resize = d => () => {
+  if (!cur) return
+  cur.size = Math.min(120, Math.max(80, (cur.size || 100) + d))
+  render(); dirty = true; status('…'); clearTimeout(timer); timer = setTimeout(save, 800)
+}
+$('smaller').onclick = resize(-2); $('bigger').onclick = resize(2)
 
 function list() {
   const has = docs.length > 0
@@ -261,7 +310,7 @@ function open(doc) {
 // draft, and the next page load sends it again, so closing the tab or losing signal never drops text.
 function save(doc = cur, md = ed.value()) {
   if (doc === cur) clearTimeout(timer)
-  const body = { name: doc.name, md }
+  const body = { name: doc.name, md, fit: !!doc.fit, size: doc.size || 100 }
   store.set('cv-draft-' + doc.id, { ...body, at: Date.now() })
   status('Kaydediliyor…')
   return api('/' + doc.id, { method: 'PUT', keepalive: true, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
@@ -277,14 +326,14 @@ ed.codemirror.on('change', () => { if (loading) return; dirty = true; status('�
 addEventListener('beforeunload', e => { if (dirty) { save(); e.preventDefault() } })
 $('pick').onchange = () => { if (dirty) save(); open(docs.find(d => d.id === $('pick').value)) }
 
-function create(name, md) {
-  const doc = { id: newId(), name, md, updated: Date.now() }
+function create(name, md, fit = false, size = 100) {
+  const doc = { id: newId(), name, md, fit, size, updated: Date.now() }
   docs.unshift(doc); open(doc); return save()
 }
 const closeMenu = () => $('menu').removeAttribute('open')
 $('new').onclick = () => { closeMenu(); const n = prompt('Yeni CV adı', 'Yeni CV'); if (n?.trim()) create(n.trim().slice(0, 80), TEMPLATE) }
 $('start').onclick = () => create('CV', TEMPLATE)
-$('copy').onclick = () => { closeMenu(); if (cur) create((cur.name + ' (kopya)').slice(0, 80), ed.value()) }
+$('copy').onclick = () => { closeMenu(); if (cur) create((cur.name + ' (kopya)').slice(0, 80), ed.value(), cur.fit, cur.size) }
 $('rename').onclick = () => {
   closeMenu(); if (!cur) return
   const n = prompt('Yeni ad', cur.name); if (!n?.trim()) return
@@ -330,7 +379,7 @@ api().then(list0 => {
   const pending = []
   for (const d of docs) {
     const dr = store.get('cv-draft-' + d.id, null)
-    if (dr && dr.at > d.updated) { d.md = dr.md; d.name = dr.name; pending.push(d) }
+    if (dr && dr.at > d.updated) { d.md = dr.md; d.name = dr.name; d.fit = dr.fit; d.size = dr.size; pending.push(d) }
   }
   open(docs.find(d => d.id === store.get('cv-last')) ?? docs[0] ?? null)
   for (const d of pending) save(d, d.md)

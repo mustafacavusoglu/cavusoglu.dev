@@ -200,7 +200,7 @@ async function words(req, db, path) {
 
 // ---- resume ----
 
-// Keys: "r:<id>" -> { id, name, md, updated }
+// Keys: "r:<id>" -> { id, name, md, fit (squeeze onto one page), size (text %, 80-120), updated }
 export class Resumes extends DurableObject {
   async list() {
     return [...(await this.ctx.storage.list({ prefix: "r:" })).values()].sort((a, b) => b.updated - a.updated);
@@ -230,7 +230,8 @@ async function resume(req, db, path) {
   const name = typeof b?.name === "string" ? b.name.trim() : "";
   if (!name || name.length > 80) return json({ error: "name 1-80 chars" }, 400);
   if (typeof b.md !== "string" || b.md.length > 100_000) return json({ error: "md max 100k" }, 400);
-  return json(await db.save({ id, name, md: b.md, updated: Date.now() }));
+  const size = Number.isInteger(b.size) && b.size >= 80 && b.size <= 120 ? b.size : 100;
+  return json(await db.save({ id, name, md: b.md, fit: b.fit === true, size, updated: Date.now() }));
 }
 
 // `wrangler dev` has no Access in front of it; Cloudflare never routes a real request with this hostname.
