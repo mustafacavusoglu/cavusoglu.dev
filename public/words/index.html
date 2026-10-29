@@ -67,8 +67,6 @@ header b{flex:1;font-weight:600;letter-spacing:-.01em}
 .row{display:flex;gap:8px;margin-top:2px}
 .btn{flex:1;height:48px;border-radius:14px;background:var(--ink);color:var(--bg);font-weight:500;font-size:16px}
 .btn:active{opacity:.85}
-.btn.ghost{background:none;color:var(--muted);border:1px solid var(--line)}
-.btn.ghost:hover{color:var(--ink);border-color:var(--ink)}
 
 .empty{text-align:center;padding:60px 10px;color:var(--body)}
 .empty h2{font-size:24px;margin:0 0 6px;color:var(--ink)}
@@ -130,7 +128,6 @@ h4{margin:22px 0 10px;font-size:13px;font-weight:500;color:var(--muted);text-tra
 
       <div class="quiz" id="quiz">
         <div id="opts" style="display:grid;gap:6px"></div>
-        <div class="row" id="pre"><button class="btn ghost" id="known">Zaten biliyorum</button></div>
         <div class="row" id="post" hidden><button class="btn" id="nextBtn">Sonraki →</button></div>
       </div>
     </div>
@@ -246,7 +243,7 @@ function show(w) {
   for (const x of pool.concat(shuffle(W.slice()))) { if (opts.length === 4) break; if (!opts.includes(x.tr) && x !== w) opts.push(x.tr) }
   $('opts').innerHTML = shuffle(opts).map((t, i) => `<button class="opt" data-ok="${t === w.tr ? 1 : 0}"><span class="k mono">${i + 1}</span><span>${esc(t)}</span></button>`).join('')
   $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => answer(b))
-  $('pre').hidden = false; $('post').hidden = true
+  $('post').hidden = true
 }
 
 function answer(btn) {
@@ -256,7 +253,7 @@ function answer(btn) {
   $('opts').querySelectorAll('.opt').forEach(b => { b.disabled = true; if (b.dataset.ok === '1') b.classList.add('ok') })
   if (btn && !right) btn.classList.add('bad')
   record(cur, right)
-  $('pre').hidden = true; $('post').hidden = false
+  $('post').hidden = false
   $('fHint').hidden = true
   flipT = setTimeout(() => $('card').classList.add('flip'), btn ? 350 : 0)
   progress()
@@ -278,9 +275,6 @@ $('card').onclick = e => {
   if (e.target.closest('.say')) return
   if (!answered) answer(null)                       // peeking counts as "didn't know"
   else $('card').classList.toggle('flip')
-}
-$('known').onclick = () => {
-  const s = S[cur.w] || [0, 0, 0, 0]; s[0] = 5; s[1] = Date.now() + WAIT[5]; S[cur.w] = s; save(); show(pick())
 }
 $('nextBtn').onclick = () => show(pick())
 $('say').onclick = () => {
