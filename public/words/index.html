@@ -175,8 +175,10 @@ setTheme(store.get('w-dark', false))
 $('theme').onclick = () => { const d = !document.documentElement.classList.contains('dark'); store.set('w-dark', d); setTheme(d) }
 
 // Leitner boxes: right answer moves a word up, a wrong one back to 0. Box >= 3 counts as learned.
-const MIN = 60e3, DAY = 864e5
-const WAIT = [MIN, 10 * MIN, DAY, 3 * DAY, 7 * DAY, 21 * DAY]
+// A word answered today never comes back before tomorrow, whatever its box.
+const DAY = 864e5
+const WAIT = [0, DAY, DAY, 3 * DAY, 7 * DAY, 21 * DAY]
+const tomorrow = () => new Date().setHours(24, 0, 0, 0)
 const LEARNED = 3
 const FILTERS = [['all', 'Hepsi'], ['a', 'A1–A2'], ['b1', 'B1'], ['b2', 'B2'], ['c1', 'C1'], ['awl', 'AWL']]
 const inFilter = (w, f) => f === 'all' || (f === 'awl' ? w.awl > 0 : f === 'a' ? w.lvl[0] === 'a' : w.lvl === f)
@@ -205,8 +207,8 @@ const lvlName = w => w.lvl === '-' ? 'AWL' : w.lvl.toUpperCase()
 
 function record(w, right) {
   const s = S[w.w] || [0, 0, 0, 0], isNew = !S[w.w]
-  s[0] = right ? Math.min(5, isNew ? 2 : s[0] + 1) : 0   // known on first sight: skip the 10-minute step
-  s[1] = Date.now() + WAIT[s[0]]
+  s[0] = right ? Math.min(5, isNew ? 2 : s[0] + 1) : 0   // known on first sight: one step closer to learned
+  s[1] = Math.max(Date.now() + WAIT[s[0]], tomorrow())
   s[right ? 2 : 3]++
   S[w.w] = s
   const d = LOG[today()] || [0, 0]; d[0]++; if (right) d[1]++; LOG[today()] = d
