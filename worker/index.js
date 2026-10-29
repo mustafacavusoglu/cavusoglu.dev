@@ -198,8 +198,8 @@ async function words(req, db, path) {
 }
 
 // `wrangler dev` has no Access in front of it; Cloudflare never routes a real request with this hostname.
-const signedIn = (req, env, aud) =>
-  new URL(req.url).hostname === "localhost" ? "dev@localhost" : accessEmail(req, env.ACCESS_TEAM, aud);
+const signedIn = (req, env) =>
+  new URL(req.url).hostname === "localhost" ? "dev@localhost" : accessEmail(req, env.ACCESS_TEAM, env.ACCESS_AUD);
 
 export default {
   async fetch(req, env) {
@@ -208,7 +208,7 @@ export default {
     if (m) return env.ROOMS.get(env.ROOMS.idFromName(m[1])).fetch(req);
     const area = path.match(/^\/api\/(hmdb|words)(\/.*)?$/);
     if (area) {
-      const email = await signedIn(req, env, area[1] === "hmdb" ? env.AUD_HMDB : env.AUD_WORDS);
+      const email = await signedIn(req, env);
       if (!email) return Response.json({ error: "sign in" }, { status: 403 });
       if (area[1] === "hmdb") return hmdb(req, env, area[2] ?? "");
       return words(req, env.WORDS.get(env.WORDS.idFromName(email.toLowerCase())), area[2] ?? "");

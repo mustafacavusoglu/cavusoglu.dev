@@ -8,11 +8,10 @@
   // Only cavusoglu.dev, where Access sits in front; no *.workers.dev or preview URL that skips it.
   "workers_dev": false,
   "preview_urls": false,
-  // Cloudflare Access (Zero Trust) team name and the AUD tag of each Access application. Not secrets.
+  // Cloudflare Access (Zero Trust) team name and the AUD tag of the one Access app over /words and /hmdb. Not secrets.
   "vars": {
-    "ACCESS_TEAM": "TODO",
-    "AUD_HMDB": "TODO",
-    "AUD_WORDS": "TODO"
+    "ACCESS_TEAM": "billowing-mode-09c3",
+    "ACCESS_AUD": "9f527c87764f3514dfebbc7f7069ba38cd597fceeb64323059b419aa16158e7c"
   },
   "assets": {
     "directory": "./out",
