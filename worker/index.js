@@ -3,7 +3,8 @@
 // and Sessiz Film races (which prefix their codes with SF).
 // /api/hmdb/* is the hidden /hmdb film log: one Durable Object ("hmdb") holds every film and its ratings.
 // /api/words is the /words flashcard progress: one Durable Object per signed-in email.
-// Both sit behind Cloudflare Access; see access.js.
+// /api/resume holds the /resume CVs (Markdown), also one Durable Object per signed-in email.
+// All three sit behind Cloudflare Access; see access.js.
 
 import { DurableObject } from "cloudflare:workers";
 import { accessEmail } from "./access.js";
@@ -197,6 +198,41 @@ async function words(req, db, path) {
   return json({ ok: true });
 }
 
+// ---- resume ----
+
+// Keys: "r:<id>" -> { id, name, md, updated }
+export class Resumes extends DurableObject {
+  async list() {
+    return [...(await this.ctx.storage.list({ prefix: "r:" })).values()].sort((a, b) => b.updated - a.updated);
+  }
+  async save(doc) {
+    await this.ctx.storage.put("r:" + doc.id, doc);
+    return doc;
+  }
+  async remove(id) {
+    await this.ctx.storage.delete("r:" + id);
+  }
+}
+
+async function resume(req, db, path) {
+  const json = (data, status = 200) => Response.json(data, { status, headers: { "cache-control": "no-store" } });
+  if (req.method === "GET" && path === "") return json(await db.list());
+  const id = path.match(/^\/([a-z0-9]{8,32})$/)?.[1];
+  if (!id) return json({ error: "not found" }, 404);
+  if (req.method === "DELETE") return await db.remove(id), json({ ok: true });
+  if (req.method !== "PUT") return json({ error: "not found" }, 404);
+  let b;
+  try {
+    b = await req.json();
+  } catch {
+    return json({ error: "bad json" }, 400);
+  }
+  const name = typeof b?.name === "string" ? b.name.trim() : "";
+  if (!name || name.length > 80) return json({ error: "name 1-80 chars" }, 400);
+  if (typeof b.md !== "string" || b.md.length > 100_000) return json({ error: "md max 100k" }, 400);
+  return json(await db.save({ id, name, md: b.md, updated: Date.now() }));
+}
+
 // `wrangler dev` has no Access in front of it; Cloudflare never routes a real request with this hostname.
 const signedIn = (req, env) =>
   new URL(req.url).hostname === "localhost" ? "dev@localhost" : accessEmail(req, env.ACCESS_TEAM, env.ACCESS_AUD);
@@ -206,12 +242,14 @@ export default {
     const path = new URL(req.url).pathname;
     const m = path.match(/^\/api\/room\/([A-Z0-9]{4,8})$/);
     if (m) return env.ROOMS.get(env.ROOMS.idFromName(m[1])).fetch(req);
-    const area = path.match(/^\/api\/(hmdb|words)(\/.*)?$/);
+    const area = path.match(/^\/api\/(hmdb|words|resume)(\/.*)?$/);
     if (area) {
       const email = await signedIn(req, env);
       if (!email) return Response.json({ error: "sign in" }, { status: 403 });
-      if (area[1] === "hmdb") return hmdb(req, env, area[2] ?? "");
-      return words(req, env.WORDS.get(env.WORDS.idFromName(email.toLowerCase())), area[2] ?? "");
+      const sub = area[2] ?? "", me = email.toLowerCase();
+      if (area[1] === "hmdb") return hmdb(req, env, sub);
+      if (area[1] === "resume") return resume(req, env.RESUMES.get(env.RESUMES.idFromName(me)), sub);
+      return words(req, env.WORDS.get(env.WORDS.idFromName(me)), sub);
     }
     return env.ASSETS.fetch(req);
   },

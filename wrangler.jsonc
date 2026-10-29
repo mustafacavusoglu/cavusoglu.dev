@@ -8,7 +8,7 @@
   // Only cavusoglu.dev, where Access sits in front; no *.workers.dev or preview URL that skips it.
   "workers_dev": false,
   "preview_urls": false,
-  // Cloudflare Access (Zero Trust) team name and the AUD tag of the one Access app over /words and /hmdb. Not secrets.
+  // Cloudflare Access (Zero Trust) team name and the AUD tag of the one Access app over /words, /hmdb and /resume. Not secrets.
   "vars": {
     "ACCESS_TEAM": "billowing-mode-09c3",
     "ACCESS_AUD": "9f527c87764f3514dfebbc7f7069ba38cd597fceeb64323059b419aa16158e7c"
@@ -23,12 +23,14 @@
     "bindings": [
       { "name": "ROOMS", "class_name": "Room" },
       { "name": "HMDB", "class_name": "Hmdb" },
-      { "name": "WORDS", "class_name": "Words" }
+      { "name": "WORDS", "class_name": "Words" },
+      { "name": "RESUMES", "class_name": "Resumes" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["Room"] },
     { "tag": "v2", "new_sqlite_classes": ["Hmdb"] },
-    { "tag": "v3", "new_sqlite_classes": ["Words"] }
+    { "tag": "v3", "new_sqlite_classes": ["Words"] },
+    { "tag": "v4", "new_sqlite_classes": ["Resumes"] }
   ]
 }

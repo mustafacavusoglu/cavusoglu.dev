@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="robots" content="noindex">
+<title>CV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js" integrity="sha384-948ahk4ZmxYVYOc+rxN1H2gM1EJ2Duhp7uHtZ4WSLkV4Vtx5MUqnV+l7u9B+jFv+" crossorigin="anonymous"></script>
+<style>
+:root{--bg:#fff;--ink:#111113;--body:#3f3f46;--muted:#6b6b73;--line:#e6e6e9;--soft:#f4f4f6;--desk:#e8eaed;--bad:#c2410c;--ok:#15803d}
+:root.dark{--bg:#0f0f11;--ink:#f2f2f3;--body:#c9c9cf;--muted:#8b8b93;--line:#26262b;--soft:#18181b;--desk:#1c1c20;--bad:#fb923c;--ok:#4ade80}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+[hidden]{display:none!important}
+.app{height:100dvh;display:flex;flex-direction:column}
+header{flex:none;display:flex;align-items:center;gap:6px;padding:calc(env(safe-area-inset-top) + 6px) 12px 6px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.icon{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;color:var(--muted);font-size:17px;text-decoration:none}
+.icon:hover{background:var(--soft);color:var(--ink)}
+select{height:38px;max-width:220px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:0 10px;min-width:0}
+.btn{height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--line);font-size:14px;white-space:nowrap}
+.btn:hover{border-color:var(--ink)}
+.btn.dark{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sp{flex:1}
+.status{font-size:12px;color:var(--muted);white-space:nowrap}
+.status.bad{color:var(--bad)}
+details.menu{position:relative}
+details.menu summary{list-style:none}
+details.menu summary::-webkit-details-marker{display:none}
+.menu .list{position:absolute;right:0;top:44px;z-index:5;min-width:190px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:grid}
+.menu .list button,.menu .list label{display:block;text-align:left;padding:9px 12px;border-radius:8px;font-size:14px;cursor:pointer}
+.menu .list button:hover,.menu .list label:hover{background:var(--soft)}
+.menu .list .del{color:var(--bad)}
+.seg{display:none;padding:3px;border-radius:10px;background:var(--soft)}
+.seg button{height:32px;padding:0 12px;border-radius:8px;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+.panes{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+.edit{display:flex;min-height:0;border-right:1px solid var(--line)}
+textarea{flex:1;resize:none;border:0;outline:none;background:var(--bg);padding:18px 20px calc(env(safe-area-inset-bottom) + 18px);font:13.5px/1.6 "IBM Plex Mono",ui-monospace,monospace;tab-size:2}
+.view{min-height:0;overflow:auto;background:var(--desk);padding:24px 16px calc(env(safe-area-inset-bottom) + 24px)}
+.empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px;color:var(--body)}
+.empty h2{margin:0;color:var(--ink);font-size:22px}
+.empty .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+
+/* the paper: always black on white, ported from resumeGen */
+.paper{width:210mm;min-height:297mm;margin:0 auto;padding:1.5cm 1.8cm;background:#fff;color:#1a1a1a;box-shadow:0 1px 8px rgba(0,0,0,.12);font:10pt/1.35 "Helvetica Neue",Helvetica,Arial,sans-serif;transform-origin:top left}
+.paper h1{font-size:20pt;margin:0 0 2px;color:#111;letter-spacing:.3px}
+.paper h2{font-size:11pt;color:#2c3e50;border-bottom:1.2px solid #3498db;padding-bottom:2px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.8px}
+.paper h3{font-size:10.5pt;margin:0 0 2px;color:#222}
+.paper p{margin:2px 0}
+.paper ul{margin:2px 0 8px;padding-left:18px}
+.paper li{margin-bottom:1px}
+.paper a{color:#2980b9;text-decoration:none}
+.paper strong{color:#111}
+.paper hr{border:none;border-top:1px solid #ddd;margin:10px 0}
+.paper em{color:#555;font-size:9.5pt}
+.paper h2,.paper h3{break-after:avoid}
+.paper li{break-inside:avoid}
+
+@media (max-width:820px){
+  .seg{display:flex}
+  .panes{grid-template-columns:minmax(0,1fr)}
+  .edit{border-right:0}
+  .panes[data-tab="edit"] .view,.panes[data-tab="view"] .edit{display:none}
+  .view{padding:12px 8px}
+}
+@page{size:A4;margin:1.5cm 1.8cm}
+@media print{
+  html,body,.app{height:auto;background:#fff}
+  header,.edit,.empty{display:none!important}
+  .panes{display:block}
+  .view{display:block!important;overflow:visible;background:none;padding:0}
+  .paper{width:auto;min-height:0;padding:0;box-shadow:none;zoom:1!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="icon" href="/" aria-label="Ana sayfa">←</a>
+    <select id="pick" aria-label="CV seç"></select>
+    <span class="status" id="status"></span>
+    <span class="sp"></span>
+    <div class="seg" id="seg"><button data-t="edit" class="on">Düzenle</button><button data-t="view">Önizle</button></div>
+    <button class="btn dark" id="pdf">PDF</button>
+    <details class="menu" id="menu">
+      <summary class="icon" aria-label="Diğer">⋯</summary>
+      <div class="list">
+        <button id="new">Yeni CV</button>
+        <button id="copy">Kopyasını oluştur</button>
+        <button id="rename">Yeniden adlandır</button>
+        <label>.md dosyasından yükle<input type="file" accept=".md,.markdown,.txt" id="file" hidden></label>
+        <button id="down">.md olarak indir</button>
+        <button id="del" class="del">Sil</button>
+      </div>
+    </details>
+    <button class="icon" id="theme" aria-label="Tema değiştir">☾</button>
+  </header>
+
+  <main class="panes" id="panes" data-tab="edit">
+    <div class="edit"><textarea id="md" spellcheck="false" placeholder="# Ad Soyad&#10;&#10;## About&#10;..."></textarea></div>
+    <div class="view" id="view"><article class="paper" id="paper"></article></div>
+    <div class="empty" id="empty" hidden>
+      <h2>Henüz CV yok</h2>
+      <p>Boş bir şablonla başla ya da elindeki Markdown CV'yi yükle.</p>
+      <div class="row"><button class="btn dark" id="start">Şablonla başla</button><label class="btn" style="display:inline-flex;align-items:center;cursor:pointer">.md yükle<input type="file" accept=".md,.markdown,.txt" id="file2" hidden></label></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id)
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} },
+  del(k) { try { localStorage.removeItem(k) } catch {} },
+}
+
+function setTheme(dark) {
+  document.documentElement.classList.toggle('dark', dark)
+  $('theme').textContent = dark ? '☀' : '☾'
+  document.querySelector('meta[name=theme-color]').content = dark ? '#0f0f11' : '#ffffff'
+}
+setTheme(store.get('cv-dark', false))
+$('theme').onclick = () => { const d = !document.documentElement.classList.contains('dark'); store.set('cv-dark', d); setTheme(d) }
+
+const TEMPLATE = `# Ad Soyad
+
+**Şehir** • e-posta@ornek.com • [linkedin.com/in/...](https://linkedin.com/in/)
+
+---
+
+## About
+
+Kısa özet.
+
+## Work Experience
+
+### Pozisyon, Şirket
+**Oca 2024 – Present**
+
+- Somut bir başarı, mümkünse sayıyla.
+
+## Education
+
+**Bölüm** — Üniversite
+*2017 – 2021*
+
+## Technical Skills
+
+**Alan:** Araç, araç, araç
+`
+
+let docs = [], cur = null, timer = 0, dirty = false
+
+const api = (path = '', opt) => fetch('/api/resume' + path, { cache: 'no-store', ...opt }).then(r => r.ok ? r.json() : Promise.reject(r.status))
+const newId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+const status = (t, bad) => { $('status').textContent = t; $('status').classList.toggle('bad', !!bad) }
+
+function render() {
+  const md = cur ? $('md').value : ''
+  // uppercase headings follow the CV's language: "EXPERIENCE" in English, "EĞİTİM" in Turkish
+  $('paper').lang = /^##+ .*[çğıöşüİ]/im.test(md) ? 'tr' : 'en'
+  $('paper').innerHTML = marked.parse(md)
+  fit()
+}
+// shrink the A4 sheet to the pane width on phones
+function fit() {
+  const p = $('paper'), w = $('view').clientWidth - 16
+  p.style.zoom = ''
+  if (w > 0 && p.offsetWidth > w) p.style.zoom = w / p.offsetWidth
+}
+addEventListener('resize', fit)
+
+function list() {
+  const has = docs.length > 0
+  $('empty').hidden = has
+  document.querySelector('.edit').hidden = !has
+  $('view').hidden = !has
+  $('pick').hidden = !has
+  $('pick').innerHTML = docs.map(d => `<option value="${d.id}">${d.name.replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`)}</option>`).join('')
+  if (cur) $('pick').value = cur.id
+}
+
+function open(doc) {
+  cur = doc
+  if (doc) store.set('cv-last', doc.id)
+  $('md').value = doc?.md ?? ''
+  list(); render()
+  status(doc ? 'Kayıtlı' : '')
+}
+
+// Every edit goes to localStorage first, then to the server after a short pause. A failed save keeps the
+// draft, and the next page load sends it again, so closing the tab or losing signal never drops text.
+function save(doc = cur, md = $('md').value) {
+  if (doc === cur) clearTimeout(timer)
+  const body = { name: doc.name, md }
+  store.set('cv-draft-' + doc.id, { ...body, at: Date.now() })
+  status('Kaydediliyor…')
+  return api('/' + doc.id, { method: 'PUT', keepalive: true, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    .then(saved => {
+      Object.assign(doc, saved)
+      if (doc !== cur) return store.del('cv-draft-' + doc.id)
+      if ($('md').value === saved.md) { store.del('cv-draft-' + doc.id); dirty = false; status('Kaydedildi') }
+    })
+    .catch(() => status('Kaydedilemedi, taslak bu cihazda duruyor', true))
+}
+
+$('md').oninput = () => { dirty = true; status('…'); render(); clearTimeout(timer); timer = setTimeout(save, 800) }
+addEventListener('beforeunload', e => { if (dirty) { save(); e.preventDefault() } })
+$('pick').onchange = () => { if (dirty) save(); open(docs.find(d => d.id === $('pick').value)) }
+
+function create(name, md) {
+  const doc = { id: newId(), name, md, updated: Date.now() }
+  docs.unshift(doc); open(doc); return save()
+}
+const closeMenu = () => $('menu').removeAttribute('open')
+$('new').onclick = () => { closeMenu(); const n = prompt('Yeni CV adı', 'Yeni CV'); if (n?.trim()) create(n.trim().slice(0, 80), TEMPLATE) }
+$('start').onclick = () => create('CV', TEMPLATE)
+$('copy').onclick = () => { closeMenu(); if (cur) create((cur.name + ' (kopya)').slice(0, 80), $('md').value) }
+$('rename').onclick = () => {
+  closeMenu(); if (!cur) return
+  const n = prompt('Yeni ad', cur.name); if (!n?.trim()) return
+  cur.name = n.trim().slice(0, 80); list(); save()
+}
+$('del').onclick = () => {
+  closeMenu(); if (!cur || !confirm(`"${cur.name}" silinsin mi? Geri alınamaz.`)) return
+  const doc = cur
+  api('/' + doc.id, { method: 'DELETE' }).then(() => {
+    store.del('cv-draft-' + doc.id); dirty = false
+    docs = docs.filter(d => d !== doc); open(docs[0] ?? null)
+  }).catch(() => alert('Silinemedi, bağlantıyı kontrol et.'))
+}
+function load(e) {
+  const f = e.target.files[0]; e.target.value = ''; closeMenu()
+  if (!f) return
+  f.text().then(md => create(f.name.replace(/\.(md|markdown|txt)$/i, '').slice(0, 80) || 'CV', md))
+}
+$('file').onchange = load; $('file2').onchange = load
+$('down').onclick = () => {
+  closeMenu(); if (!cur) return
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([$('md').value], { type: 'text/markdown' }))
+  a.download = cur.name + '.md'; a.click(); URL.revokeObjectURL(a.href)
+}
+// PDF = the browser's own print dialog ("Save as PDF"); the file name comes from the page title
+$('pdf').onclick = () => {
+  if (!cur) return
+  const t = document.title; document.title = cur.name
+  $('panes').dataset.tab = 'view'; render()
+  setTimeout(() => { print(); document.title = t }, 50)
+}
+$('seg').onclick = e => {
+  const t = e.target.dataset.t; if (!t) return
+  $('panes').dataset.tab = t
+  $('seg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === t))
+  fit()
+}
+
+api().then(list0 => {
+  docs = list0
+  // drafts the server never confirmed (tab closed or offline mid-save) win over the server copy
+  const pending = []
+  for (const d of docs) {
+    const dr = store.get('cv-draft-' + d.id, null)
+    if (dr && dr.at > d.updated) { d.md = dr.md; d.name = dr.name; pending.push(d) }
+  }
+  open(docs.find(d => d.id === store.get('cv-last')) ?? docs[0] ?? null)
+  for (const d of pending) save(d, d.md)
+}).catch(() => {
+  $('empty').hidden = false
+  $('empty').querySelector('h2').textContent = 'Bağlanılamadı'
+  $('empty').querySelector('p').textContent = 'CV\'ler sunucuda tutuluyor. İnternetini kontrol edip sayfayı yenile.'
+  $('empty').querySelector('.row').hidden = true
+  document.querySelector('.edit').hidden = $('view').hidden = $('pick').hidden = true
+})
+</script>
+</body>
+</html>
