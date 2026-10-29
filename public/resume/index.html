@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js" integrity="sha384-948ahk4ZmxYVYOc+rxN1H2gM1EJ2Duhp7uHtZ4WSLkV4Vtx5MUqnV+l7u9B+jFv+" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.css" integrity="sha384-ZoLYv3S+AsZX+zhbN1D1+WPpc8f+DmLfxfgw+qn0Nq8wJPOYQQXEW5ZrRhcGozlG" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/easymde@2.21.0/dist/easymde.min.js" integrity="sha384-mTM6vzy+/UiHrMBClNGViM9qEv0/26iCGqpJKhSzdnjrxbKjO3vkT62ujXQ8B5iv" crossorigin="anonymous"></script>
 <style>
 :root{--bg:#fff;--ink:#111113;--body:#3f3f46;--muted:#6b6b73;--line:#e6e6e9;--soft:#f4f4f6;--desk:#e8eaed;--bad:#c2410c;--ok:#15803d}
 :root.dark{--bg:#0f0f11;--ink:#f2f2f3;--body:#c9c9cf;--muted:#8b8b93;--line:#26262b;--soft:#18181b;--desk:#1c1c20;--bad:#fb923c;--ok:#4ade80}
@@ -42,7 +44,22 @@ details.menu summary::-webkit-details-marker{display:none}
 
 .panes{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
 .edit{display:flex;min-height:0;border-right:1px solid var(--line)}
-textarea{flex:1;resize:none;border:0;outline:none;background:var(--bg);padding:18px 20px calc(env(safe-area-inset-bottom) + 18px);font:13.5px/1.6 "IBM Plex Mono",ui-monospace,monospace;tab-size:2}
+/* EasyMDE: toolbar on top, the editor fills the rest of the pane */
+.edit .EasyMDEContainer{flex:1;min-width:0;display:flex;flex-direction:column}
+.edit .editor-toolbar{flex:none;display:flex;align-items:center;gap:2px;padding:6px 10px;border:0;border-bottom:1px solid var(--line);border-radius:0;opacity:1;overflow-x:auto;scrollbar-width:none;background:var(--bg)}
+.edit .editor-toolbar::-webkit-scrollbar{display:none}
+.edit .editor-toolbar button{flex:none;width:auto;min-width:34px;height:34px;padding:0 8px;margin:0;border:0;border-radius:8px;color:var(--body);font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.edit .editor-toolbar button:hover,.edit .editor-toolbar button.active{background:var(--soft);border:0;color:var(--ink)}
+.edit .editor-toolbar button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.edit .editor-toolbar button.txt{font-size:13px;font-weight:500;color:var(--ink);border:1px solid var(--line)}
+.edit .editor-toolbar i.separator{flex:none;height:20px;margin:0 4px;border-left:1px solid var(--line);border-right:0}
+.edit .CodeMirror{flex:1 1 0;min-height:0;height:auto;border:0;border-radius:0;padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);background:var(--bg);color:var(--ink);font:14.5px/1.65 "IBM Plex Sans",system-ui,sans-serif}
+.edit .CodeMirror-cursor{border-color:var(--ink)}
+.edit .CodeMirror-selected,.edit .CodeMirror-focused .CodeMirror-selected{background:rgba(31,79,209,.18)}
+.edit .CodeMirror .cm-header-1{font-size:1.6em}.edit .CodeMirror .cm-header-2{font-size:1.3em}.edit .CodeMirror .cm-header-3{font-size:1.12em}
+.edit .CodeMirror .cm-link,.edit .CodeMirror .cm-url{color:#1f4fd1}
+:root.dark .edit .CodeMirror .cm-link,:root.dark .edit .CodeMirror .cm-url{color:#7aa2ff}
+.edit .CodeMirror .CodeMirror-placeholder{color:var(--muted)}
 .view{min-height:0;overflow:auto;background:var(--desk);padding:24px 16px calc(env(safe-area-inset-bottom) + 24px)}
 .empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px;color:var(--body)}
 .empty h2{margin:0;color:var(--ink);font-size:22px}
@@ -104,7 +121,7 @@ textarea{flex:1;resize:none;border:0;outline:none;background:var(--bg);padding:1
   </header>
 
   <main class="panes" id="panes" data-tab="edit">
-    <div class="edit"><textarea id="md" spellcheck="false" placeholder="# Ad Soyad&#10;&#10;## About&#10;..."></textarea></div>
+    <div class="edit"><textarea id="md"></textarea></div>
     <div class="view" id="view"><article class="paper" id="paper"></article></div>
     <div class="empty" id="empty" hidden>
       <h2>Henüz CV yok</h2>
@@ -157,16 +174,60 @@ Kısa özet.
 **Alan:** Araç, araç, araç
 `
 
-let docs = [], cur = null, timer = 0, dirty = false
+let docs = [], cur = null, timer = 0, dirty = false, loading = false
+
+// ---- editor: EasyMDE with a toolbar for the pieces a CV is made of ----
+const svg = d => `<svg viewBox="0 0 24 24">${d}</svg>`
+const insert = text => cm => { const c = cm.codemirror; c.replaceSelection(text); c.focus() }
+// a block starts on its own line after a blank line; its placeholder comes back selected, ready to type over
+const block = (text, pick) => cm => {
+  const c = cm.codemirror, line = c.getCursor().line, here = c.getLine(line)
+  const pre = here.trim() ? '\n\n' : (line > 0 && c.getLine(line - 1).trim() ? '\n' : '')
+  if (here.trim()) c.setCursor({ line, ch: here.length })
+  const from = c.getCursor().line
+  c.replaceSelection(pre + text)
+  for (let l = from; l <= c.lastLine(); l++) {
+    const ch = c.getLine(l).indexOf(pick)
+    if (ch >= 0) { c.setSelection({ line: l, ch }, { line: l, ch: ch + pick.length }); break }
+  }
+  c.focus()
+}
+const ed = new EasyMDE({
+  element: $('md'),
+  autoDownloadFontAwesome: false,
+  spellChecker: false,
+  nativeSpellcheck: false,
+  status: false,
+  forceSync: false,
+  placeholder: '# Ad Soyad\n\n## About\n…',
+  shortcuts: { togglePreview: null, toggleSideBySide: null, toggleFullScreen: null },
+  toolbar: [
+    { name: 'section', action: block('## Bölüm adı\n\n', 'Bölüm adı'), icon: '+ Bölüm', className: 'txt', title: 'Yeni bölüm (## başlık)' },
+    { name: 'job', action: block('### Pozisyon, Şirket\n**Oca 2024 – Present**\n\n- Somut bir başarı, mümkünse sayıyla.\n', 'Pozisyon, Şirket'), icon: '+ Deneyim', className: 'txt', title: 'Deneyim kalıbı ekle' },
+    '|',
+    { name: 'heading', action: EasyMDE.toggleHeading3, icon: svg('<path d="M6 4v16M18 4v16M6 12h12"/>'), title: 'Alt başlık (###)' },
+    { name: 'bold', action: EasyMDE.toggleBold, icon: svg('<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/>'), title: 'Kalın (Ctrl+B)' },
+    { name: 'italic', action: EasyMDE.toggleItalic, icon: svg('<path d="M14 5h-4M14 19h-4M14 5l-4 14"/>'), title: 'İtalik (Ctrl+I)' },
+    '|',
+    { name: 'unordered-list', action: EasyMDE.toggleUnorderedList, icon: svg('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'), title: 'Madde listesi' },
+    { name: 'ordered-list', action: EasyMDE.toggleOrderedList, icon: svg('<path d="M10 6h10M10 12h10M10 18h10M4 4.5h1.5V9M4 9h3M4 14.5c.5-1 2.8-1 2.8.5 0 1.2-2.8 2-2.8 3.5h3"/>'), title: 'Numaralı liste' },
+    { name: 'link', action: EasyMDE.drawLink, icon: svg('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'), title: 'Link (Ctrl+K)' },
+    { name: 'rule', action: EasyMDE.drawHorizontalRule, icon: svg('<path d="M4 12h16"/>'), title: 'Ayraç çizgisi' },
+    '|',
+    { name: 'undo', action: EasyMDE.undo, icon: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>'), title: 'Geri al (Ctrl+Z)' },
+    { name: 'redo', action: EasyMDE.redo, icon: svg('<path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>'), title: 'Yinele' },
+  ],
+})
 
 const api = (path = '', opt) => fetch('/api/resume' + path, { cache: 'no-store', ...opt }).then(r => r.ok ? r.json() : Promise.reject(r.status))
 const newId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 16)
 const status = (t, bad) => { $('status').textContent = t; $('status').classList.toggle('bad', !!bad) }
 
 function render() {
-  const md = cur ? $('md').value : ''
-  // uppercase headings follow the CV's language: "EXPERIENCE" in English, "EĞİTİM" in Turkish
-  $('paper').lang = /^##+ .*[çğıöşüİ]/im.test(md) ? 'tr' : 'en'
+  const md = cur ? ed.value() : ''
+  // uppercase headings follow the CV's language ("EXPERIENCE" / "EĞİTİM"): Turkish when most sections say so
+  const secs = md.match(/^## .*/gm) ?? []
+  $('paper').lang = secs.length && secs.filter(h => /[çğıöşüİ]/i.test(h)).length * 2 >= secs.length ? 'tr' : 'en'
   $('paper').innerHTML = marked.parse(md)
   fit()
 }
@@ -191,14 +252,14 @@ function list() {
 function open(doc) {
   cur = doc
   if (doc) store.set('cv-last', doc.id)
-  $('md').value = doc?.md ?? ''
-  list(); render()
+  loading = true; ed.value(doc?.md ?? ''); ed.codemirror.clearHistory(); loading = false
+  list(); render(); setTimeout(() => ed.codemirror.refresh())
   status(doc ? 'Kayıtlı' : '')
 }
 
 // Every edit goes to localStorage first, then to the server after a short pause. A failed save keeps the
 // draft, and the next page load sends it again, so closing the tab or losing signal never drops text.
-function save(doc = cur, md = $('md').value) {
+function save(doc = cur, md = ed.value()) {
   if (doc === cur) clearTimeout(timer)
   const body = { name: doc.name, md }
   store.set('cv-draft-' + doc.id, { ...body, at: Date.now() })
@@ -207,12 +268,12 @@ function save(doc = cur, md = $('md').value) {
     .then(saved => {
       Object.assign(doc, saved)
       if (doc !== cur) return store.del('cv-draft-' + doc.id)
-      if ($('md').value === saved.md) { store.del('cv-draft-' + doc.id); dirty = false; status('Kaydedildi') }
+      if (ed.value() === saved.md) { store.del('cv-draft-' + doc.id); dirty = false; status('Kaydedildi') }
     })
     .catch(() => status('Kaydedilemedi, taslak bu cihazda duruyor', true))
 }
 
-$('md').oninput = () => { dirty = true; status('…'); render(); clearTimeout(timer); timer = setTimeout(save, 800) }
+ed.codemirror.on('change', () => { if (loading) return; dirty = true; status('…'); render(); clearTimeout(timer); timer = setTimeout(save, 800) })
 addEventListener('beforeunload', e => { if (dirty) { save(); e.preventDefault() } })
 $('pick').onchange = () => { if (dirty) save(); open(docs.find(d => d.id === $('pick').value)) }
 
@@ -223,7 +284,7 @@ function create(name, md) {
 const closeMenu = () => $('menu').removeAttribute('open')
 $('new').onclick = () => { closeMenu(); const n = prompt('Yeni CV adı', 'Yeni CV'); if (n?.trim()) create(n.trim().slice(0, 80), TEMPLATE) }
 $('start').onclick = () => create('CV', TEMPLATE)
-$('copy').onclick = () => { closeMenu(); if (cur) create((cur.name + ' (kopya)').slice(0, 80), $('md').value) }
+$('copy').onclick = () => { closeMenu(); if (cur) create((cur.name + ' (kopya)').slice(0, 80), ed.value()) }
 $('rename').onclick = () => {
   closeMenu(); if (!cur) return
   const n = prompt('Yeni ad', cur.name); if (!n?.trim()) return
@@ -246,7 +307,7 @@ $('file').onchange = load; $('file2').onchange = load
 $('down').onclick = () => {
   closeMenu(); if (!cur) return
   const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob([$('md').value], { type: 'text/markdown' }))
+  a.href = URL.createObjectURL(new Blob([ed.value()], { type: 'text/markdown' }))
   a.download = cur.name + '.md'; a.click(); URL.revokeObjectURL(a.href)
 }
 // PDF = the browser's own print dialog ("Save as PDF"); the file name comes from the page title
@@ -260,7 +321,7 @@ $('seg').onclick = e => {
   const t = e.target.dataset.t; if (!t) return
   $('panes').dataset.tab = t
   $('seg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === t))
-  fit()
+  fit(); ed.codemirror.refresh()
 }
 
 api().then(list0 => {
