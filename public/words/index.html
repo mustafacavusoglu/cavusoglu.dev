@@ -290,10 +290,14 @@ $('card').onclick = e => {
   else $('card').classList.toggle('flip')
 }
 $('nextBtn').onclick = () => show(pick())
+if ('speechSynthesis' in window) speechSynthesis.getVoices()   // starts the async voice list load
 $('say').onclick = () => {
   if (!('speechSynthesis' in window)) return
   speechSynthesis.cancel()
+  // desktop Chrome ignores u.lang and reads with the system (Turkish) voice unless we hand it an English one
+  const v = speechSynthesis.getVoices(), en = l => v.find(x => x.lang.replace('_', '-').startsWith(l))
   const u = new SpeechSynthesisUtterance(cur.w); u.lang = 'en-GB'; u.rate = .9
+  u.voice = en('en-GB') || en('en-US') || en('en') || null
   speechSynthesis.speak(u)
 }
 document.addEventListener('keydown', e => {
