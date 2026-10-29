@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Kelimeler</title>
+<meta name="description" content="Oxford 3000/5000 ve Academic Word List kelimeleri: çevrilebilen kartlar, 4 şıklı test, cihazında tutulan ilerleme.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--ink:#111113;--body:#3f3f46;--muted:#6b6b73;--line:#e6e6e9;--soft:#f4f4f6;--card:#fff;--accent:#1f4fd1;--ok:#15803d;--okbg:#ecfdf3;--bad:#c2410c;--badbg:#fff4ed}
+:root.dark{--bg:#0f0f11;--ink:#f2f2f3;--body:#c9c9cf;--muted:#8b8b93;--line:#26262b;--soft:#18181b;--card:#151518;--accent:#7aa2ff;--ok:#4ade80;--okbg:#0f2a1a;--bad:#fb923c;--badbg:#2d1a0e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;-webkit-text-size-adjust:100%}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0;touch-action:manipulation}
+button:disabled{cursor:default}
+[hidden]{display:none!important}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.muted{color:var(--muted)}
+.app{max-width:520px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 16px)}
+header{display:flex;align-items:center;gap:4px;height:52px}
+header b{flex:1;font-weight:600;letter-spacing:-.01em}
+.icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--muted);font-size:18px;text-decoration:none}
+.icon:hover{background:var(--soft);color:var(--ink)}
+
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:4px -16px 0;padding:0 16px}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);font-size:14px;color:var(--body)}
+.chips button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.prog{display:flex;align-items:center;gap:10px;margin:14px 0 16px;font-size:13px}
+.bar{flex:1;height:6px;border-radius:3px;background:var(--soft);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);border-radius:3px;transition:width .3s}
+
+.card{perspective:1400px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.inner{display:grid;transition:transform .5s cubic-bezier(.3,.7,.3,1);transform-style:preserve-3d}
+.card.flip .inner{transform:rotateY(180deg)}
+.face{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;min-height:250px;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.04)}
+.back{transform:rotateY(180deg)}
+.meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.tag{padding:2px 8px;border-radius:6px;background:var(--soft);text-transform:uppercase;letter-spacing:.04em}
+.meta .sp{flex:1}
+.say{width:36px;height:36px;border-radius:10px;font-size:17px;color:var(--muted);display:grid;place-items:center}
+.say:hover{background:var(--soft);color:var(--ink)}
+.front .word{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:16px 0}
+.word h2{margin:0;font-size:clamp(32px,9vw,44px);font-weight:600;letter-spacing:-.03em;line-height:1.1;word-break:break-word}
+.word p{margin:8px 0 0;font-size:14px}
+.hint{font-size:12px;text-align:center}
+.back h3{margin:12px 0 2px;font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.25}
+.back .en{margin:0 0 14px;color:var(--body)}
+.back ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.back li{padding:10px 12px;border-radius:12px;background:var(--soft);font-style:italic;color:var(--body);font-size:15px}
+.back li b{font-style:normal;color:var(--ink);font-weight:600}
+
+.quiz{margin-top:16px;display:grid;gap:8px}
+.quiz .q{font-size:13px;margin:0 2px 2px}
+.opt{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-radius:14px;border:1px solid var(--line);text-align:left;font-size:16px;transition:background .15s,border-color .15s}
+.opt .k{flex:none;width:22px;height:22px;border-radius:6px;background:var(--soft);font-size:12px;display:grid;place-items:center;color:var(--muted)}
+.opt:not(:disabled):hover{border-color:var(--ink)}
+.opt.ok{border-color:var(--ok);background:var(--okbg);color:var(--ok)}
+.opt.bad{border-color:var(--bad);background:var(--badbg);color:var(--bad)}
+.opt:disabled:not(.ok):not(.bad){opacity:.45}
+.row{display:flex;gap:8px;margin-top:4px}
+.btn{flex:1;height:52px;border-radius:14px;background:var(--ink);color:var(--bg);font-weight:500;font-size:16px}
+.btn:active{opacity:.85}
+.btn.ghost{background:none;color:var(--muted);border:1px solid var(--line)}
+.btn.ghost:hover{color:var(--ink);border-color:var(--ink)}
+
+.empty{text-align:center;padding:60px 10px;color:var(--body)}
+.empty h2{font-size:24px;margin:0 0 6px;color:var(--ink)}
+
+/* stats */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 20px}
+.grid div{background:var(--soft);border-radius:14px;padding:14px 8px;text-align:center}
+.grid b{display:block;font-size:24px;font-weight:600;letter-spacing:-.02em}
+.grid span{font-size:12px;color:var(--muted)}
+h4{margin:22px 0 10px;font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.lv{display:grid;grid-template-columns:44px 1fr 92px;align-items:center;gap:10px;font-size:13px;margin:8px 0}
+.lv .bar{height:8px}
+.days{display:flex;align-items:flex-end;gap:4px;height:64px}
+.days i{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.search{width:100%;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);padding:0 14px;margin-bottom:8px;outline:none}
+.search:focus{border-color:var(--ink)}
+.list{display:grid}
+.list button{display:flex;gap:10px;align-items:baseline;padding:10px 4px;border-bottom:1px solid var(--line);text-align:left}
+.list button:hover b{color:var(--accent)}
+.list b{font-weight:500}
+.list span{flex:1;font-size:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--line);align-self:center}
+.dot.l{background:var(--ok)}.dot.s{background:#eab308}.dot.h{background:var(--bad)}
+.foot{margin-top:28px;font-size:12px;line-height:1.6}
+.foot a{color:inherit}
+.reset{margin-top:12px;font-size:13px;color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a class="icon" href="/" aria-label="Ana sayfa">←</a>
+    <b>Kelimeler</b>
+    <button class="icon" id="statsBtn" aria-label="İstatistikler">▤</button>
+    <button class="icon" id="theme" aria-label="Tema değiştir">☾</button>
+  </header>
+
+  <section id="study">
+    <div class="chips" id="chips"></div>
+    <div class="prog"><div class="bar"><i id="pbar"></i></div><span class="mono muted" id="ptext"></span></div>
+
+    <div id="cardWrap">
+      <div class="card" id="card" tabindex="0" aria-label="Kartı çevir">
+        <div class="inner">
+          <div class="face front">
+            <div class="meta"><span class="tag mono" id="fLvl"></span><span id="fPos"></span><span class="sp"></span><button class="say" id="say" aria-label="Telaffuz">🔊</button></div>
+            <div class="word"><h2 id="fWord"></h2><p class="muted" id="fStatus"></p></div>
+            <div class="hint muted" id="fHint">Cevabı görmek için dokun</div>
+          </div>
+          <div class="face back">
+            <div class="meta"><span class="tag mono" id="bLvl"></span><b id="bWord" style="color:var(--ink);font-size:15px"></b><span id="bPos"></span></div>
+            <h3 id="bTr"></h3>
+            <p class="en" id="bEn"></p>
+            <ul id="bEx"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="quiz" id="quiz">
+        <div class="q muted">Türkçe anlamı hangisi?</div>
+        <div id="opts" style="display:grid;gap:8px"></div>
+        <div class="row" id="pre"><button class="btn ghost" id="known">Zaten biliyorum</button></div>
+        <div class="row" id="post" hidden><button class="btn" id="nextBtn">Sonraki →</button></div>
+      </div>
+    </div>
+
+    <div class="empty" id="empty" hidden>
+      <h2>Bu seviye bitti</h2>
+      <p id="emptyText"></p>
+    </div>
+  </section>
+
+  <section id="stats" hidden>
+    <div class="grid">
+      <div><b id="sLearned">0</b><span>öğrenildi</span></div>
+      <div><b id="sLearning">0</b><span>çalışılıyor</span></div>
+      <div><b id="sAcc">–</b><span>doğruluk</span></div>
+      <div><b id="sToday">0</b><span>bugün</span></div>
+      <div><b id="sStreak">0</b><span>gün seri</span></div>
+      <div><b id="sTotal">0</b><span>kelime</span></div>
+    </div>
+    <h4>Seviyeler</h4>
+    <div id="sLevels"></div>
+    <h4>Son 14 gün</h4>
+    <div class="days" id="sDays"></div>
+    <h4>Kelimelerim</h4>
+    <div class="chips tabs" id="tabs"></div>
+    <input class="search" id="q" type="search" placeholder="Kelime ara (İngilizce ya da Türkçe)" autocomplete="off">
+    <div class="list" id="list"></div>
+    <p class="foot muted">İlerleme sadece bu cihazın tarayıcısında tutulur. Kelimeler: <a href="https://www.oxfordlearnersdictionaries.com/wordlists/oxford3000-5000" target="_blank" rel="noopener">Oxford 3000 &amp; 5000</a> ve Coxhead'in <a href="https://www.wgtn.ac.nz/lals/resources/academicwordlist" target="_blank" rel="noopener">Academic Word List</a>. Tanım, çeviri ve örnekler yapay zekâ ile üretildi; hata görürsen haber ver.<br><button class="reset" id="reset">İlerlemeyi sıfırla</button></p>
+  </section>
+</div>
+
+<script>
+const $ = id => document.getElementById(id)
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} },
+}
+
+function setTheme(dark) {
+  document.documentElement.classList.toggle('dark', dark)
+  $('theme').textContent = dark ? '☀' : '☾'
+  document.querySelector('meta[name=theme-color]').content = dark ? '#0f0f11' : '#ffffff'
+}
+setTheme(store.get('w-dark', false))
+$('theme').onclick = () => { const d = !document.documentElement.classList.contains('dark'); store.set('w-dark', d); setTheme(d) }
+
+// Leitner boxes: right answer moves a word up, a wrong one back to 0. Box >= 3 counts as learned.
+const MIN = 60e3, DAY = 864e5
+const WAIT = [MIN, 10 * MIN, DAY, 3 * DAY, 7 * DAY, 21 * DAY]
+const LEARNED = 3
+const FILTERS = [['all', 'Hepsi'], ['a', 'A1–A2'], ['b1', 'B1'], ['b2', 'B2'], ['c1', 'C1'], ['awl', 'AWL']]
+const inFilter = (w, f) => f === 'all' || (f === 'awl' ? w.awl > 0 : f === 'a' ? w.lvl[0] === 'a' : w.lvl === f)
+
+let W = []                                // {w, pos, lvl, awl, en, tr, ex}
+let S = store.get('w-state', {})          // word -> [box, due, right, wrong]
+let LOG = store.get('w-log', {})          // 'YYYY-MM-DD' -> [answered, right]
+let F = store.get('w-filter', 'b2')
+let cur = null, answered = false, tab = 'l', flipT = 0
+
+const today = () => new Date().toLocaleDateString('sv')
+const save = () => { store.set('w-state', S); store.set('w-log', LOG) }
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]] } return a }
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const lvlName = w => w.lvl === '-' ? 'AWL' : w.lvl.toUpperCase()
+
+function record(w, right) {
+  const s = S[w.w] || [0, 0, 0, 0], isNew = !S[w.w]
+  s[0] = right ? Math.min(5, isNew ? 2 : s[0] + 1) : 0   // known on first sight: skip the 10-minute step
+  s[1] = Date.now() + WAIT[s[0]]
+  s[right ? 2 : 3]++
+  S[w.w] = s
+  const d = LOG[today()] || [0, 0]; d[0]++; if (right) d[1]++; LOG[today()] = d
+  save()
+}
+
+function pick() {
+  const now = Date.now(), pool = W.filter(w => inFilter(w, F))
+  let due = null, fresh = []
+  for (const w of pool) {
+    const s = S[w.w]
+    if (!s) fresh.push(w)
+    else if (s[1] <= now && w !== cur && (!due || s[1] < S[due.w][1])) due = w
+  }
+  return due || fresh[Math.random() * fresh.length | 0] || null
+}
+
+function show(w) {
+  cur = w; answered = false; clearTimeout(flipT)
+  $('card').classList.remove('flip')
+  const has = !!w
+  $('cardWrap').hidden = !has; $('empty').hidden = has
+  progress()
+  if (!has) {
+    const next = Math.min(...W.filter(x => inFilter(x, F) && S[x.w]).map(x => S[x.w][1]))
+    $('emptyText').textContent = isFinite(next) ? `Sıradaki tekrar ${new Date(next).toLocaleString('tr', { dateStyle: 'medium', timeStyle: 'short' })}. Başka bir seviye seçebilirsin.` : 'Başka bir seviye seç.'
+    return
+  }
+  const s = S[w.w]
+  $('fWord').textContent = $('bWord').textContent = w.w
+  $('fLvl').textContent = $('bLvl').textContent = lvlName(w) + (w.awl && w.lvl !== '-' ? ' · AWL' : '')
+  $('fPos').textContent = $('bPos').textContent = w.pos
+  $('fStatus').textContent = !s ? 'yeni' : s[0] >= LEARNED ? 'tekrar' : s[3] > s[2] ? 'zorlandığın kelime' : 'çalışılıyor'
+  $('fHint').hidden = false
+  $('bTr').textContent = w.tr
+  $('bEn').textContent = w.en
+  const re = new RegExp(`\\b(${w.w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split(/[ ,]+/)[0]}\\w*)`, 'gi')
+  $('bEx').innerHTML = w.ex.map(x => `<li>${esc(x).replace(re, '<b>$1</b>')}</li>`).join('')
+  // three wrong options: same part of speech, near the same level when possible
+  const p = w.pos.split(/[ ,]/)[0]
+  const pool = shuffle(W.filter(x => x !== w && x.tr !== w.tr && x.pos.split(/[ ,]/)[0] === p))
+  pool.sort((a, b) => (a.lvl !== w.lvl) - (b.lvl !== w.lvl))
+  const opts = [w.tr]
+  for (const x of pool.concat(shuffle(W.slice()))) { if (opts.length === 4) break; if (!opts.includes(x.tr) && x !== w) opts.push(x.tr) }
+  $('opts').innerHTML = shuffle(opts).map((t, i) => `<button class="opt" data-ok="${t === w.tr ? 1 : 0}"><span class="k mono">${i + 1}</span><span>${esc(t)}</span></button>`).join('')
+  $('opts').querySelectorAll('.opt').forEach(b => b.onclick = () => answer(b))
+  $('pre').hidden = false; $('post').hidden = true
+}
+
+function answer(btn) {
+  if (answered) return
+  answered = true
+  const right = btn?.dataset.ok === '1'
+  $('opts').querySelectorAll('.opt').forEach(b => { b.disabled = true; if (b.dataset.ok === '1') b.classList.add('ok') })
+  if (btn && !right) btn.classList.add('bad')
+  record(cur, right)
+  $('pre').hidden = true; $('post').hidden = false
+  $('fHint').hidden = true
+  flipT = setTimeout(() => $('card').classList.add('flip'), btn ? 350 : 0)
+  progress()
+  $('nextBtn').focus({ preventScroll: true })
+}
+
+function progress() {
+  const pool = W.filter(w => inFilter(w, F)), n = pool.filter(w => S[w.w]?.[0] >= LEARNED).length
+  $('pbar').style.width = (pool.length ? n / pool.length * 100 : 0) + '%'
+  $('ptext').textContent = `${n} / ${pool.length}`
+}
+
+function chips() {
+  $('chips').innerHTML = FILTERS.map(([k, t]) => `<button data-k="${k}" class="${k === F ? 'on' : ''}">${t}</button>`).join('')
+  $('chips').querySelectorAll('button').forEach(b => b.onclick = () => { F = b.dataset.k; store.set('w-filter', F); chips(); show(pick()) })
+}
+
+$('card').onclick = e => {
+  if (e.target.closest('.say')) return
+  if (!answered) answer(null)                       // peeking counts as "didn't know"
+  else $('card').classList.toggle('flip')
+}
+$('known').onclick = () => {
+  const s = S[cur.w] || [0, 0, 0, 0]; s[0] = 5; s[1] = Date.now() + WAIT[5]; S[cur.w] = s; save(); show(pick())
+}
+$('nextBtn').onclick = () => show(pick())
+$('say').onclick = () => {
+  if (!('speechSynthesis' in window)) return
+  speechSynthesis.cancel()
+  const u = new SpeechSynthesisUtterance(cur.w); u.lang = 'en-GB'; u.rate = .9
+  speechSynthesis.speak(u)
+}
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || !$('stats').hidden || !cur) return
+  const o = $('opts').querySelectorAll('.opt')
+  if (!answered && e.key >= '1' && e.key <= '4') answer(o[e.key - 1])
+  else if (e.key === ' ') { e.preventDefault(); $('card').click() }
+  else if (answered && (e.key === 'Enter' || e.key === 'ArrowRight')) { e.preventDefault(); show(pick()) }
+})
+
+// ---- stats ----
+function stats() {
+  const seen = W.filter(w => S[w.w])
+  const learned = seen.filter(w => S[w.w][0] >= LEARNED).length
+  const r = seen.reduce((a, w) => a + S[w.w][2], 0), x = seen.reduce((a, w) => a + S[w.w][3], 0)
+  $('sLearned').textContent = learned
+  $('sLearning').textContent = seen.length - learned
+  $('sAcc').textContent = r + x ? Math.round(r / (r + x) * 100) + '%' : '–'
+  $('sToday').textContent = LOG[today()]?.[0] || 0
+  $('sTotal').textContent = W.length
+  let streak = 0, d = new Date()
+  if (!LOG[today()]) d.setDate(d.getDate() - 1)
+  while (LOG[d.toLocaleDateString('sv')]) { streak++; d.setDate(d.getDate() - 1) }
+  $('sStreak').textContent = streak
+  $('sLevels').innerHTML = FILTERS.slice(1).map(([k, t]) => {
+    const p = W.filter(w => inFilter(w, k)), n = p.filter(w => S[w.w]?.[0] >= LEARNED).length
+    return `<div class="lv"><span class="mono">${t}</span><div class="bar"><i style="width:${n / p.length * 100}%"></i></div><span class="mono muted" style="text-align:right">${n} / ${p.length}</span></div>`
+  }).join('')
+  const days = []
+  for (let i = 13; i >= 0; i--) { const t = new Date(); t.setDate(t.getDate() - i); days.push(LOG[t.toLocaleDateString('sv')]?.[0] || 0) }
+  const max = Math.max(1, ...days)
+  $('sDays').innerHTML = days.map(n => `<i style="height:${n / max * 100}%" title="${n}"></i>`).join('')
+  tabs(); list()
+}
+const TABS = [['l', 'Öğrendiklerim'], ['s', 'Çalışılan'], ['h', 'Zorlandıklarım']]
+const kind = w => { const s = S[w.w]; return !s ? '' : s[0] >= LEARNED ? 'l' : s[3] > s[2] ? 'h' : 's' }
+function tabs() {
+  $('tabs').innerHTML = TABS.map(([k, t]) => `<button data-k="${k}" class="${k === tab ? 'on' : ''}">${t} · ${W.filter(w => kind(w) === k).length}</button>`).join('')
+  $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { tab = b.dataset.k; tabs(); list() })
+}
+function list() {
+  const q = $('q').value.trim().toLocaleLowerCase('tr')
+  const rows = (q ? W.filter(w => w.w.toLowerCase().includes(q) || w.tr.toLocaleLowerCase('tr').includes(q)) : W.filter(w => kind(w) === tab)).slice(0, 200)
+  $('list').innerHTML = rows.map(w => `<button data-w="${esc(w.w)}"><i class="dot ${kind(w)}"></i><b>${esc(w.w)}</b><span>${esc(w.tr)}</span><small class="mono muted">${lvlName(w)}</small></button>`).join('') ||
+    `<p class="muted" style="font-size:14px">${q ? 'Sonuç yok.' : 'Henüz kelime yok.'}</p>`
+  $('list').querySelectorAll('button').forEach(b => b.onclick = () => { view(false); show(W.find(w => w.w === b.dataset.w)) })
+}
+$('q').oninput = list
+function view(st) {
+  $('stats').hidden = !st; $('study').hidden = st
+  $('statsBtn').textContent = st ? '✕' : '▤'
+  if (st) stats()
+  scrollTo(0, 0)
+}
+$('statsBtn').onclick = () => view($('stats').hidden)
+$('reset').onclick = () => { if (confirm('Tüm ilerleme silinsin mi?')) { S = {}; LOG = {}; save(); stats(); show(pick()) } }
+
+fetch('/words/words.json').then(r => r.json()).then(rows => {
+  W = rows.map(([w, pos, lvl, awl, en, tr, ex]) => ({ w, pos, lvl, awl, en, tr, ex }))
+  chips(); show(pick())
+})
+</script>
+</body>
+</html>
