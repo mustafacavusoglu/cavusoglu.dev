@@ -2,9 +2,12 @@ import type { Metadata } from "next"
 import { Header, Footer } from "@/components/header"
 import { GameGrid } from "@/components/games"
 
+// Not linked from the header or sitemap: only reachable by typing /games (like /hmdb).
+
 export const metadata: Metadata = {
   title: "Games – Mustafa Çavuşoğlu",
   description: "Small browser games: Avcı Kasap, Yörünge, Nebula Front, Hayatta Kal and Sessiz Film. No sign-up, progress stays in your browser.",
+  robots: { index: false, follow: false },
 }
 
 export default function GamesPage() {

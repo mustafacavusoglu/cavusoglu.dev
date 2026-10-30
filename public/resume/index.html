@@ -127,6 +127,7 @@ details.menu summary::-webkit-details-marker{display:none}
         <button id="rename">Yeniden adlandır</button>
         <label>.md dosyasından yükle<input type="file" accept=".md,.markdown,.txt" id="file" hidden></label>
         <button id="down">.md olarak indir</button>
+        <button id="pub" hidden></button>
         <button id="del" class="del">Sil</button>
       </div>
     </details>
@@ -187,7 +188,7 @@ Kısa özet.
 **Alan:** Araç, araç, araç
 `
 
-let docs = [], cur = null, timer = 0, dirty = false, loading = false
+let docs = [], cur = null, timer = 0, dirty = false, loading = false, pub = null
 
 // ---- editor: EasyMDE with a toolbar for the pieces a CV is made of ----
 const svg = d => `<svg viewBox="0 0 24 24">${d}</svg>`
@@ -302,7 +303,7 @@ function open(doc) {
   cur = doc
   if (doc) store.set('cv-last', doc.id)
   loading = true; ed.value(doc?.md ?? ''); ed.codemirror.clearHistory(); loading = false
-  list(); render(); setTimeout(() => ed.codemirror.refresh())
+  list(); render(); pubLabel(); setTimeout(() => ed.codemirror.refresh())
   status(doc ? 'Kayıtlı' : '')
 }
 
@@ -359,6 +360,16 @@ $('down').onclick = () => {
   a.href = URL.createObjectURL(new Blob([ed.value()], { type: 'text/markdown' }))
   a.download = cur.name + '.md'; a.click(); URL.revokeObjectURL(a.href)
 }
+// cavusoglu.dev/cv shows one CV to everyone, read-only; only the owner's account gets this menu item
+function pubLabel() { $('pub').textContent = cur && cur.id === pub?.id ? '✓ cavusoglu.dev/cv\'de görünüyor' : 'cavusoglu.dev/cv\'de göster' }
+$('pub').onclick = () => {
+  closeMenu(); if (!cur) return
+  if (cur.id === pub.id) return Object.assign(document.createElement('a'), { href: '/cv', target: '_blank' }).click() // window.open is our open()
+  api('/pub', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: cur.id }) })
+    .then(p => { pub = p; pubLabel() }, () => alert('Yayınlanamadı.'))
+}
+api('/pub').then(p => { pub = p; $('pub').hidden = !p.can; pubLabel() }, () => {})
+
 // PDF = the browser's own print dialog ("Save as PDF"); the file name comes from the page title
 $('pdf').onclick = () => {
   if (!cur) return

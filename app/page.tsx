@@ -3,7 +3,6 @@ import { readFileSync } from "fs"
 import { join } from "path"
 import { Header, Footer } from "@/components/header"
 import { topics } from "@/lib/notes"
-import { GameGrid } from "@/components/games"
 
 const jobs = [
   {
@@ -112,16 +111,6 @@ export default function HomePage() {
               </a>
             ))}
           </div>
-        </section>
-
-        <section id="games" className="scroll-mt-14 border-b border-line py-12 sm:scroll-mt-16 sm:py-16">
-          <div className="mb-6 flex items-baseline justify-between gap-3">
-            <h2 className={sectionTitle}>Games</h2>
-            <Link href="/games" className="text-sm text-accent hover:text-accent-hover hover:underline">
-              All games →
-            </Link>
-          </div>
-          <GameGrid />
         </section>
 
         <section className="pt-12 pb-16 sm:pt-16 sm:pb-24">
