@@ -208,7 +208,7 @@ async function words(req, db, path) {
 // ---- resume ----
 
 // Keys: "r:<id>" -> { id, name, md, fit (squeeze onto one page), size (text %, 80-120), updated }
-// "pub" -> id of the CV shown at /cv (only ever set in the owner's object)
+// "pub" -> id of the CV shown at /cv (only ever set in the owner's object); unset = the newest CV
 export class Resumes extends DurableObject {
   async list() {
     return [...(await this.ctx.storage.list({ prefix: "r:" })).values()].sort((a, b) => b.updated - a.updated);
@@ -221,7 +221,7 @@ export class Resumes extends DurableObject {
   }
   async published() {
     const id = await this.pub();
-    return id ? ((await this.ctx.storage.get("r:" + id)) ?? null) : null;
+    return (id && (await this.ctx.storage.get("r:" + id))) || (await this.list())[0] || null;
   }
   async save(doc) {
     await this.ctx.storage.put("r:" + doc.id, doc);
@@ -237,7 +237,7 @@ async function resume(req, db, path, owner) {
   if (req.method === "GET" && path === "") return json(await db.list());
   // the live CV behind /cv: edits show up there without publishing again
   if (path === "/pub") {
-    if (req.method === "GET") return json({ id: owner ? await db.pub() : null, can: owner });
+    if (req.method === "GET") return json({ id: owner ? ((await db.published())?.id ?? null) : null, can: owner });
     if (req.method !== "PUT" || !owner) return json({ error: "owner only" }, 403);
     const id = (await req.json().catch(() => null))?.id;
     if (!/^[a-z0-9]{8,32}$/.test(id)) return json({ error: "bad id" }, 400);
