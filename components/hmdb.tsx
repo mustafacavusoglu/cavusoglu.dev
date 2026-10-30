@@ -17,12 +17,13 @@ const api = (path: string, body?: object) =>
 // IMDb serves any width from the same URL: ._V1_.jpg → ._V1_UX<w>_.jpg
 const poster = (url: string | null, w: number) => url?.replace(/\._V1_.*\.jpg$/, `._V1_UX${w}_.jpg`)
 
-export function Hmdb() {
+/** readOnly: the public /filmler view, no sign-in, no search, no rating. */
+export function Hmdb({ readOnly = false }: { readOnly?: boolean }) {
   const [films, setFilms] = useState<Film[] | null>(null)
   const [q, setQ] = useState("")
   const [hits, setHits] = useState<Hit[]>([])
   const [error, setError] = useState("")
-  const [me, setMe] = useState<User | null>(null) // asked on every visit, never remembered
+  const [me, setMe] = useState<User | null>(null) // from the Access (Gmail) sign-in, see hmdbUser in the worker
   const [open, setOpen] = useState("") // film id from the URL hash (#tt…), so the back button closes the detail view
 
   const run = (p: Promise<Film[]>) =>
@@ -32,12 +33,16 @@ export function Hmdb() {
     )
 
   useEffect(() => {
-    run(api(""))
+    if (readOnly) run(fetch("/api/filmler").then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText)))))
+    else {
+      run(api(""))
+      api("/me").then((r) => setMe(r.user), () => {})
+    }
     const sync = () => setOpen(location.hash.slice(1))
     sync()
     addEventListener("hashchange", sync)
     return () => removeEventListener("hashchange", sync)
-  }, [])
+  }, [readOnly])
 
   useEffect(() => {
     if (q.trim().length < 2) return setHits([])
@@ -51,30 +56,15 @@ export function Hmdb() {
     run(api("/add", { id })).then((ok) => ok && (location.hash = id))
   }
 
-  if (!me)
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-white px-6">
-        <h2 className="text-[28px] font-semibold tracking-tight">Kimsin?</h2>
-        <div className="flex w-full max-w-sm flex-col gap-3 sm:flex-row">
-          {USERS.map((u) => (
-            <button key={u} onClick={() => setMe(u)} className="flex-1 rounded-xl border border-line py-6 text-xl font-medium hover:border-ink hover:bg-ink hover:text-white">
-              {u}
-            </button>
-          ))}
-        </div>
-      </div>
-    )
-
   const film = films?.find((f) => f.id === open)
 
   return (
     <div>
-      <p className="-mt-5 mb-6 text-sm text-muted">
-        <span className="font-medium text-ink">{me}</span> olarak ·{" "}
-        <button onClick={() => setMe(null)} className="underline hover:text-ink">
-          değiştir
-        </button>
-      </p>
+      {me && (
+        <p className="-mt-5 mb-6 text-sm text-muted">
+          <span className="font-medium text-ink">{me}</span> olarak
+        </p>
+      )}
 
       {error && (
         <p className="mb-6 text-sm text-red-600" onClick={() => setError("")}>
@@ -87,37 +77,39 @@ export function Hmdb() {
           key={film.id}
           film={film}
           user={me}
-          onRate={(r) => run(api("/rate", { id: film.id, user: me, ...r }))}
-          onRemove={() => confirm(`"${film.title}" silinsin mi?`) && run(api("/remove", { id: film.id })).then(() => (location.hash = ""))}
+          onRate={(r) => run(api("/rate", { id: film.id, ...r }))}
+          onRemove={me ? () => confirm(`"${film.title}" silinsin mi?`) && run(api("/remove", { id: film.id })).then(() => (location.hash = "")) : undefined}
         />
       ) : (
         <>
-          <div className="relative mb-8">
-            <input
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="IMDb'de film ara ve ekle…"
-              className="w-full rounded-lg border border-line px-4 py-3 text-[15px] outline-none focus:border-ink"
-            />
-            {hits.length > 0 && (
-              <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-line bg-white shadow-lg">
-                {hits.map((h) => (
-                  <li key={h.id}>
-                    <button onClick={() => add(h.id)} className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-code">
-                      {h.image ? <img src={poster(h.image, 80)} alt="" className="h-12 w-8 rounded object-cover" /> : <span className="h-12 w-8 rounded bg-code" />}
-                      <span>
-                        {h.title} <span className="text-muted">{h.year}</span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {!readOnly && (
+            <div className="relative mb-8">
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="IMDb'de film ara ve ekle…"
+                className="w-full rounded-lg border border-line px-4 py-3 text-[15px] outline-none focus:border-ink"
+              />
+              {hits.length > 0 && (
+                <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-line bg-white shadow-lg">
+                  {hits.map((h) => (
+                    <li key={h.id}>
+                      <button onClick={() => add(h.id)} className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-code">
+                        {h.image ? <img src={poster(h.image, 80)} alt="" className="h-12 w-8 rounded object-cover" /> : <span className="h-12 w-8 rounded bg-code" />}
+                        <span>
+                          {h.title} <span className="text-muted">{h.year}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           {films === null && <p className="text-muted">Yükleniyor…</p>}
-          {films?.length === 0 && <p className="text-muted">Henüz film yok. Yukarıdan arayıp ekleyin.</p>}
+          {films?.length === 0 && <p className="text-muted">Henüz film yok.{!readOnly && " Yukarıdan arayıp ekleyin."}</p>}
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-4">
             {films?.map((f) => (
@@ -164,9 +156,9 @@ function Scores({ film }: { film: Film }) {
   )
 }
 
-function Detail({ film, user, onRate, onRemove }: { film: Film; user: User; onRate: (r: { score: number; comment: string }) => Promise<boolean>; onRemove: () => void }) {
-  const mine = film.ratings[user]
-  const [editing, setEditing] = useState(!mine)
+function Detail({ film, user, onRate, onRemove }: { film: Film; user: User | null; onRate: (r: { score: number; comment: string }) => Promise<boolean>; onRemove?: () => void }) {
+  const mine = user ? film.ratings[user] : undefined
+  const [editing, setEditing] = useState(!!user && !mine)
   // Starts from what this person already gave, so saving again edits it.
   const [score, setScore] = useState(mine?.score ?? 8)
   const [comment, setComment] = useState(mine?.comment ?? "")
@@ -252,9 +244,11 @@ function Detail({ film, user, onRate, onRemove }: { film: Film; user: User; onRa
         })}
       </ul>
 
-      <button onClick={onRemove} className="mt-10 text-xs text-muted hover:text-red-600">
-        Filmi listeden sil
-      </button>
+      {onRemove && (
+        <button onClick={onRemove} className="mt-10 text-xs text-muted hover:text-red-600">
+          Filmi listeden sil
+        </button>
+      )}
     </div>
   )
 }

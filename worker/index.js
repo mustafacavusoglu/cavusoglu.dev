@@ -4,7 +4,8 @@
 // /api/hmdb/* is the hidden /hmdb film log: one Durable Object ("hmdb") holds every film and its ratings.
 // /api/words is the /words flashcard progress: one Durable Object per signed-in email.
 // /api/resume holds the /resume CVs (Markdown), also one Durable Object per signed-in email.
-// All three sit behind Cloudflare Access; see access.js.
+// All three sit behind Cloudflare Access; see access.js. Two read-only exceptions stay open: /api/filmler (the hmdb
+// list) and /api/cv (the one CV Mustafa marked public in /resume).
 
 import { DurableObject } from "cloudflare:workers";
 import { accessEmail } from "./access.js";
@@ -76,9 +77,13 @@ function trySend(ws, msg) {
   } catch {}
 }
 
+const OWNER = "mustafacavussoglu@gmail.com"; // already public on the site itself
+
 // ---- hmdb ----
 
-const USERS = ["Hilal", "Mustafa"];
+// Access only lets two Gmail accounts in, so anyone who isn't Mustafa is Hilal (keeps her address out of this public repo).
+// ponytail: breaks the day a third email is added to the Access app; map emails in a secret then.
+const hmdbUser = (email) => (email === OWNER ? "Mustafa" : "Hilal");
 
 // Film records live under "m:<imdb id>": { id, title, year, image, imdb, added, ratings: { Hilal: { score, comment, at } } }
 export class Hmdb extends DurableObject {
@@ -123,12 +128,15 @@ async function imdbRating(id) {
   }
 }
 
-async function hmdb(req, env, path) {
-  const db = env.HMDB.get(env.HMDB.idFromName("hmdb"));
+const hmdbDb = (env) => env.HMDB.get(env.HMDB.idFromName("hmdb"));
+
+async function hmdb(req, env, path, user) {
+  const db = hmdbDb(env);
   const json = (data, status = 200) => Response.json(data, { status, headers: { "cache-control": "no-store" } });
   const bad = (msg) => json({ error: msg }, 400);
 
   if (req.method === "GET" && path === "") return json(await db.list());
+  if (req.method === "GET" && path === "/me") return json({ user });
   if (req.method === "GET" && path === "/search") {
     const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
     return json(q.length < 2 ? [] : (await imdbSearch(q.slice(0, 60))).slice(0, 8));
@@ -151,10 +159,9 @@ async function hmdb(req, env, path) {
   if (path === "/rate") {
     const score = Math.round(Number(b.score) * 10) / 10; // one decimal: 1.0 … 10.0
     const comment = typeof b.comment === "string" ? b.comment.trim() : "";
-    if (!USERS.includes(b.user)) return bad("bad user");
     if (!(score >= 1 && score <= 10)) return bad("score must be 1-10");
     if (comment.length > 200) return bad("comment max 200");
-    return json(await db.rate(b.id, b.user, { score, comment, at: Date.now() }));
+    return json(await db.rate(b.id, user, { score, comment, at: Date.now() }));
   }
   if (path === "/remove") return json(await db.remove(b.id));
   return json({ error: "not found" }, 404);
@@ -201,9 +208,20 @@ async function words(req, db, path) {
 // ---- resume ----
 
 // Keys: "r:<id>" -> { id, name, md, fit (squeeze onto one page), size (text %, 80-120), updated }
+// "pub" -> id of the CV shown at /cv (only ever set in the owner's object)
 export class Resumes extends DurableObject {
   async list() {
     return [...(await this.ctx.storage.list({ prefix: "r:" })).values()].sort((a, b) => b.updated - a.updated);
+  }
+  async pub() {
+    return (await this.ctx.storage.get("pub")) ?? null;
+  }
+  async publish(id) {
+    await this.ctx.storage.put("pub", id);
+  }
+  async published() {
+    const id = await this.pub();
+    return id ? ((await this.ctx.storage.get("r:" + id)) ?? null) : null;
   }
   async save(doc) {
     await this.ctx.storage.put("r:" + doc.id, doc);
@@ -214,9 +232,17 @@ export class Resumes extends DurableObject {
   }
 }
 
-async function resume(req, db, path) {
+async function resume(req, db, path, owner) {
   const json = (data, status = 200) => Response.json(data, { status, headers: { "cache-control": "no-store" } });
   if (req.method === "GET" && path === "") return json(await db.list());
+  // the live CV behind /cv: edits show up there without publishing again
+  if (path === "/pub") {
+    if (req.method === "GET") return json({ id: owner ? await db.pub() : null, can: owner });
+    if (req.method !== "PUT" || !owner) return json({ error: "owner only" }, 403);
+    const id = (await req.json().catch(() => null))?.id;
+    if (!/^[a-z0-9]{8,32}$/.test(id)) return json({ error: "bad id" }, 400);
+    return await db.publish(id), json({ id, can: true });
+  }
   const id = path.match(/^\/([a-z0-9]{8,32})$/)?.[1];
   if (!id) return json({ error: "not found" }, 404);
   if (req.method === "DELETE") return await db.remove(id), json({ ok: true });
@@ -243,13 +269,21 @@ export default {
     const path = new URL(req.url).pathname;
     const m = path.match(/^\/api\/room\/([A-Z0-9]{4,8})$/);
     if (m) return env.ROOMS.get(env.ROOMS.idFromName(m[1])).fetch(req);
+    // /filmler and /cv: public, read-only, outside Access on purpose; GET only.
+    if (path === "/api/filmler" && req.method === "GET")
+      return Response.json(await hmdbDb(env).list(), { headers: { "cache-control": "public, max-age=60" } });
+    if (path === "/api/cv" && req.method === "GET") {
+      const cv = await env.RESUMES.get(env.RESUMES.idFromName(OWNER)).published();
+      return cv ? Response.json({ name: cv.name, md: cv.md, fit: cv.fit, size: cv.size }, { headers: { "cache-control": "public, max-age=60" } })
+        : Response.json({ error: "none" }, { status: 404 });
+    }
     const area = path.match(/^\/api\/(hmdb|words|resume)(\/.*)?$/);
     if (area) {
       const email = await signedIn(req, env);
       if (!email) return Response.json({ error: "sign in" }, { status: 403 });
       const sub = area[2] ?? "", me = email.toLowerCase();
-      if (area[1] === "hmdb") return hmdb(req, env, sub);
-      if (area[1] === "resume") return resume(req, env.RESUMES.get(env.RESUMES.idFromName(me)), sub);
+      if (area[1] === "hmdb") return hmdb(req, env, sub, hmdbUser(me));
+      if (area[1] === "resume") return resume(req, env.RESUMES.get(env.RESUMES.idFromName(me)), sub, me === OWNER);
       return words(req, env.WORDS.get(env.WORDS.idFromName(me)), sub);
     }
     return env.ASSETS.fetch(req);
