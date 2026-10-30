@@ -8,6 +8,7 @@
 // list) and /api/cv (the one CV Mustafa marked public in /resume).
 
 import { DurableObject } from "cloudflare:workers";
+import puppeteer from "@cloudflare/puppeteer";
 import { accessEmail } from "./access.js";
 
 const MAX = 4; // default room size; a game may ask for up to 5 with ?max=
@@ -260,18 +261,47 @@ async function resume(req, db, path, owner) {
   return json(await db.save({ id, name, md: b.md, fit: b.fit === true, size, updated: Date.now() }));
 }
 
+// /cv printed by a real browser, so the text stays selectable. Cached per CV version: Browser Rendering runs once per edit.
+// If it fails (daily quota, outage) the visitor lands on /cv and gets the browser's own print dialog instead.
+async function cvPdf(req, env, ctx) {
+  const cv = await env.RESUMES.get(env.RESUMES.idFromName(OWNER)).published();
+  if (!cv) return Response.json({ error: "none" }, { status: 404 });
+  const key = new Request(`${new URL(req.url).origin}/api/cv.pdf?v=${cv.id}-${cv.updated}`);
+  const hit = await caches.default.match(key);
+  if (hit) return hit;
+  let browser;
+  try {
+    browser = await puppeteer.launch(env.BROWSER);
+    const page = await browser.newPage();
+    await page.goto(new URL("/cv/", req.url).href, { waitUntil: "networkidle0" });
+    await page.waitForSelector("#paper:not([hidden])");
+    const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+    const name = cv.name.replace(/ı/g, "i").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w.-]+/g, "_") || "CV";
+    const res = new Response(pdf, {
+      headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="${name}.pdf"`, "cache-control": "public, max-age=300" },
+    });
+    ctx.waitUntil(caches.default.put(key, res.clone()));
+    return res;
+  } catch {
+    return Response.redirect(new URL("/cv/#print", req.url).href, 302);
+  } finally {
+    await browser?.close();
+  }
+}
+
 // `wrangler dev` has no Access in front of it; Cloudflare never routes a real request with this hostname.
 const signedIn = (req, env) =>
   new URL(req.url).hostname === "localhost" ? "dev@localhost" : accessEmail(req, env.ACCESS_TEAM, env.ACCESS_AUD);
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const path = new URL(req.url).pathname;
     const m = path.match(/^\/api\/room\/([A-Z0-9]{4,8})$/);
     if (m) return env.ROOMS.get(env.ROOMS.idFromName(m[1])).fetch(req);
     // /filmler and /cv: public, read-only, outside Access on purpose; GET only.
     if (path === "/api/filmler" && req.method === "GET")
       return Response.json(await hmdbDb(env).list(), { headers: { "cache-control": "public, max-age=60" } });
+    if (path === "/api/cv.pdf" && req.method === "GET") return cvPdf(req, env, ctx);
     if (path === "/api/cv" && req.method === "GET") {
       const cv = await env.RESUMES.get(env.RESUMES.idFromName(OWNER)).published();
       return cv ? Response.json({ name: cv.name, md: cv.md, fit: cv.fit, size: cv.size }, { headers: { "cache-control": "public, max-age=60" } })

@@ -23,7 +23,7 @@ header{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:6px;p
 .icon:hover{background:var(--soft);color:var(--ink)}
 .title{font-weight:600;font-size:15px}
 .sp{flex:1}
-.btn{height:38px;padding:0 14px;border-radius:10px;font-size:14px;background:var(--ink);color:var(--bg)}
+.btn{display:inline-flex;align-items:center;height:38px;padding:0 14px;border-radius:10px;font-size:14px;font-weight:500;background:var(--ink);color:var(--bg);text-decoration:none}
 .view{padding:24px 16px calc(env(safe-area-inset-bottom) + 24px)}
 .msg{text-align:center;color:var(--body);padding:48px 16px}
 
@@ -58,7 +58,7 @@ header{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:6px;p
   <a class="icon" href="/" aria-label="Home">←</a>
   <span class="title">Resume</span>
   <span class="sp"></span>
-  <button class="btn" id="pdf" hidden>PDF</button>
+  <a class="btn" id="pdf" href="/api/cv.pdf" download hidden>Download PDF</a>
   <button class="icon" id="theme" aria-label="Toggle theme">☾</button>
 </header>
 <main class="view" id="view"><p class="msg" id="msg">Loading…</p><article class="paper" id="paper" hidden></article></main>
@@ -105,9 +105,10 @@ fetch('/api/cv').then(r => r.ok ? r.json() : Promise.reject(r.status)).then(d =>
   $('paper').innerHTML = `<div class="flow">${marked.parse(d.md)}</div>`
   $('msg').hidden = true; $('paper').hidden = false; $('pdf').hidden = false
   fit()
+  if (location.hash === '#print') { history.replaceState(null, '', '/cv/'); setTimeout(print, 300) } // PDF fallback, see cvPdf in the worker
 }).catch(s => { $('msg').textContent = s === 404 ? 'No resume published yet.' : 'Could not load the resume. Try again later.' })
 
-$('pdf').onclick = () => { const t = document.title; document.title = cv.name; print(); document.title = t }
+addEventListener('beforeprint', () => { if (cv) document.title = cv.name })
 </script>
 </body>
 </html>
