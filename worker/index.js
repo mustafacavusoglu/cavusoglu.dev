@@ -107,7 +107,7 @@ export class Hmdb extends DurableObject {
   }
 }
 
-// IMDb's own search box endpoint: title, year, poster. No rating, so that comes from its GraphQL API.
+// IMDb's own search box endpoint: title, year, poster. No rating, so that comes from OMDb.
 async function imdbSearch(q) {
   const r = await fetch(`https://v3.sg.media-imdb.com/suggestion/x/${encodeURIComponent(q.toLowerCase())}.json`);
   const { d = [] } = await r.json();
@@ -116,14 +116,11 @@ async function imdbSearch(q) {
     .map((x) => ({ id: x.id, title: x.l, year: x.y ?? null, image: x.i?.imageUrl ?? null }));
 }
 
-async function imdbRating(id) {
+// IMDb's GraphQL API answers Workers with 429 since mid-October 2026, so the score comes from OMDb (free key, 1000/day).
+async function imdbRating(id, key) {
   try {
-    const r = await fetch("https://graphql.imdb.com/", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-imdb-client-name": "imdb-web-next-localized" },
-      body: JSON.stringify({ query: `{ title(id: "${id}") { ratingsSummary { aggregateRating } } }` }),
-    });
-    return (await r.json()).data?.title?.ratingsSummary?.aggregateRating ?? null;
+    const { imdbRating } = await (await fetch(`https://www.omdbapi.com/?i=${id}&apikey=${key}`)).json();
+    return Number(imdbRating) || null; // "N/A" → null
   } catch {
     return null; // a film without an IMDb score still gets saved
   }
@@ -136,7 +133,13 @@ async function hmdb(req, env, path, user) {
   const json = (data, status = 200) => Response.json(data, { status, headers: { "cache-control": "no-store" } });
   const bad = (msg) => json({ error: msg }, 400);
 
-  if (req.method === "GET" && path === "") return json(await db.list());
+  if (req.method === "GET" && path === "") {
+    // Films saved without a score (IMDb 429s, or too new to be rated) get one on the next load. Not on public /filmler,
+    // so strangers can't burn the OMDb quota. ponytail: one OMDb call per unrated film per load; fine for a few films.
+    const films = await db.list();
+    await Promise.all(films.filter((f) => f.imdb == null).map(async (f) => (f.imdb = await imdbRating(f.id, env.OMDB_KEY)) && db.add(f)));
+    return json(films);
+  }
   if (req.method === "GET" && path === "/me") return json({ user });
   if (req.method === "GET" && path === "/search") {
     const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
@@ -155,7 +158,7 @@ async function hmdb(req, env, path, user) {
   if (path === "/add") {
     const film = (await imdbSearch(b.id)).find((x) => x.id === b.id);
     if (!film) return bad("not on IMDb");
-    return json(await db.add({ ...film, imdb: await imdbRating(b.id) }));
+    return json(await db.add({ ...film, imdb: await imdbRating(b.id, env.OMDB_KEY) }));
   }
   if (path === "/rate") {
     const score = Math.round(Number(b.score) * 10) / 10; // one decimal: 1.0 … 10.0
