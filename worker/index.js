@@ -5,7 +5,7 @@
 // /api/words is the /words flashcard progress: one Durable Object per signed-in email.
 // /api/resume holds the /resume CVs (Markdown), also one Durable Object per signed-in email.
 // All three sit behind Cloudflare Access; see access.js. Two read-only exceptions stay open: /api/filmler (the hmdb
-// list) and /api/cv (the one CV Mustafa marked public in /resume).
+// list) and /api/cv (the one CV Mustafa marked public in /resume). /api/filmler/imdb is a keyed write for IMDb scores.
 
 import { DurableObject } from "cloudflare:workers";
 import puppeteer from "@cloudflare/puppeteer";
@@ -105,25 +105,20 @@ export class Hmdb extends DurableObject {
     await this.ctx.storage.delete("m:" + id);
     return this.list();
   }
+  async setImdb(id, imdb) {
+    const film = await this.ctx.storage.get("m:" + id);
+    if (film) await this.ctx.storage.put("m:" + id, { ...film, imdb });
+  }
 }
 
-// IMDb's own search box endpoint: title, year, poster. No rating, so that comes from OMDb.
+// IMDb's own search box endpoint: title, year, poster. No rating: IMDb's GraphQL API answers Workers with 429 since
+// mid-October 2026, so films are saved without one and Mustafa's Mac feeds it in (scripts/hmdb-imdb.sh → /api/filmler/imdb).
 async function imdbSearch(q) {
   const r = await fetch(`https://v3.sg.media-imdb.com/suggestion/x/${encodeURIComponent(q.toLowerCase())}.json`);
   const { d = [] } = await r.json();
   return d
     .filter((x) => /^tt\d+$/.test(x.id) && ["movie", "tvSeries", "tvMiniSeries", "tvMovie"].includes(x.qid))
     .map((x) => ({ id: x.id, title: x.l, year: x.y ?? null, image: x.i?.imageUrl ?? null }));
-}
-
-// IMDb's GraphQL API answers Workers with 429 since mid-October 2026, so the score comes from OMDb (free key, 1000/day).
-async function imdbRating(id, key) {
-  try {
-    const { imdbRating } = await (await fetch(`https://www.omdbapi.com/?i=${id}&apikey=${key}`)).json();
-    return Number(imdbRating) || null; // "N/A" → null
-  } catch {
-    return null; // a film without an IMDb score still gets saved
-  }
 }
 
 const hmdbDb = (env) => env.HMDB.get(env.HMDB.idFromName("hmdb"));
@@ -133,13 +128,7 @@ async function hmdb(req, env, path, user) {
   const json = (data, status = 200) => Response.json(data, { status, headers: { "cache-control": "no-store" } });
   const bad = (msg) => json({ error: msg }, 400);
 
-  if (req.method === "GET" && path === "") {
-    // Films saved without a score (IMDb 429s, or too new to be rated) get one on the next load. Not on public /filmler,
-    // so strangers can't burn the OMDb quota. ponytail: one OMDb call per unrated film per load; fine for a few films.
-    const films = await db.list();
-    await Promise.all(films.filter((f) => f.imdb == null).map(async (f) => (f.imdb = await imdbRating(f.id, env.OMDB_KEY)) && db.add(f)));
-    return json(films);
-  }
+  if (req.method === "GET" && path === "") return json(await db.list());
   if (req.method === "GET" && path === "/me") return json({ user });
   if (req.method === "GET" && path === "/search") {
     const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
@@ -158,7 +147,7 @@ async function hmdb(req, env, path, user) {
   if (path === "/add") {
     const film = (await imdbSearch(b.id)).find((x) => x.id === b.id);
     if (!film) return bad("not on IMDb");
-    return json(await db.add({ ...film, imdb: await imdbRating(b.id, env.OMDB_KEY) }));
+    return json(await db.add({ ...film, imdb: null }));
   }
   if (path === "/rate") {
     const score = Math.round(Number(b.score) * 10) / 10; // one decimal: 1.0 … 10.0
@@ -304,6 +293,14 @@ export default {
     // /filmler and /cv: public, read-only, outside Access on purpose; GET only.
     if (path === "/api/filmler" && req.method === "GET")
       return Response.json(await hmdbDb(env).list(), { headers: { "cache-control": "public, max-age=60" } });
+    // The Mac's IMDb scores (see imdbSearch). Outside Access too, so it holds its own key.
+    if (path === "/api/filmler/imdb" && req.method === "POST") {
+      if (!env.HMDB_FEED_KEY || req.headers.get("authorization") !== `Bearer ${env.HMDB_FEED_KEY}`) return new Response(null, { status: 403 });
+      const { id, imdb } = await req.json().catch(() => ({}));
+      if (!/^tt\d{1,10}$/.test(id) || !(imdb >= 1 && imdb <= 10)) return new Response(null, { status: 400 });
+      await hmdbDb(env).setImdb(id, imdb);
+      return new Response(null, { status: 204 });
+    }
     if (path === "/api/cv.pdf" && req.method === "GET") return cvPdf(req, env, ctx);
     if (path === "/api/cv" && req.method === "GET") {
       const cv = await env.RESUMES.get(env.RESUMES.idFromName(OWNER)).published();
