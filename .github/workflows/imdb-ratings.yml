@@ -1,0 +1,48 @@
+name: IMDb Ratings
+
+# IMDb's own ratings file (datasets.imdbws.com, personal/non-commercial use) → public/imdb/<last 2 id digits>.json,
+# which the worker reads for the /hmdb scores. IMDb's GraphQL API answers Cloudflare Workers with 429, so no live lookup.
+# Only titles with 1000+ votes, to keep it ~2 MB. The push redeploys the site through Workers Builds.
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+jobs:
+  ratings:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Split IMDb ratings into shards
+        run: |
+          curl -sfo /tmp/ratings.tsv.gz https://datasets.imdbws.com/title.ratings.tsv.gz
+          python3 - <<'EOF'
+          import gzip, json, os
+          shards = {}
+          with gzip.open("/tmp/ratings.tsv.gz", "rt") as f:
+              next(f)
+              for line in f:
+                  id, rating, votes = line.rstrip("\n").split("\t")
+                  if int(votes) >= 1000:
+                      shards.setdefault(id[-2:], {})[id] = float(rating)
+          os.makedirs("public/imdb", exist_ok=True)
+          for k, v in shards.items():
+              with open(f"public/imdb/{k}.json", "w") as out:
+                  json.dump(v, out, indent=0, sort_keys=True)  # one title per line: small git deltas
+          print(sum(map(len, shards.values())), "titles")
+          EOF
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain public/imdb)" ]; then
+            git add public/imdb
+            git commit -m "chore: update IMDb ratings"
+            git push
+          else
+            echo "No rating changes"
+          fi

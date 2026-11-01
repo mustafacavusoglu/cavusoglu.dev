@@ -5,7 +5,7 @@
 // /api/words is the /words flashcard progress: one Durable Object per signed-in email.
 // /api/resume holds the /resume CVs (Markdown), also one Durable Object per signed-in email.
 // All three sit behind Cloudflare Access; see access.js. Two read-only exceptions stay open: /api/filmler (the hmdb
-// list) and /api/cv (the one CV Mustafa marked public in /resume). /api/filmler/imdb is a keyed write for IMDb scores.
+// list) and /api/cv (the one CV Mustafa marked public in /resume).
 
 import { DurableObject } from "cloudflare:workers";
 import puppeteer from "@cloudflare/puppeteer";
@@ -105,14 +105,9 @@ export class Hmdb extends DurableObject {
     await this.ctx.storage.delete("m:" + id);
     return this.list();
   }
-  async setImdb(id, imdb) {
-    const film = await this.ctx.storage.get("m:" + id);
-    if (film) await this.ctx.storage.put("m:" + id, { ...film, imdb });
-  }
 }
 
-// IMDb's own search box endpoint: title, year, poster. No rating: IMDb's GraphQL API answers Workers with 429 since
-// mid-October 2026, so films are saved without one and Mustafa's Mac feeds it in (scripts/hmdb-imdb.sh → /api/filmler/imdb).
+// IMDb's own search box endpoint: title, year, poster. No rating, so that comes from withImdb.
 async function imdbSearch(q) {
   const r = await fetch(`https://v3.sg.media-imdb.com/suggestion/x/${encodeURIComponent(q.toLowerCase())}.json`);
   const { d = [] } = await r.json();
@@ -121,14 +116,25 @@ async function imdbSearch(q) {
     .map((x) => ({ id: x.id, title: x.l, year: x.y ?? null, image: x.i?.imageUrl ?? null }));
 }
 
+// IMDb scores from IMDb's own ratings file, split into public/imdb/<last 2 id digits>.json every Monday by
+// .github/workflows/imdb-ratings.yml (IMDb's GraphQL API answers Workers with 429 since mid-October 2026).
+// ponytail: only titles with 1000+ votes, so a brand-new film shows "–" until it gets there and the next Monday run.
+async function withImdb(films, env) {
+  const shards = {};
+  for (const { id } of films)
+    shards[id.slice(-2)] ??= env.ASSETS.fetch(`https://assets/imdb/${id.slice(-2)}.json`).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+  return Promise.all(films.map(async (f) => ({ ...f, imdb: (await shards[f.id.slice(-2)])[f.id] ?? f.imdb })));
+}
+
 const hmdbDb = (env) => env.HMDB.get(env.HMDB.idFromName("hmdb"));
 
 async function hmdb(req, env, path, user) {
   const db = hmdbDb(env);
   const json = (data, status = 200) => Response.json(data, { status, headers: { "cache-control": "no-store" } });
   const bad = (msg) => json({ error: msg }, 400);
+  const films = async (list) => json(await withImdb(list, env));
 
-  if (req.method === "GET" && path === "") return json(await db.list());
+  if (req.method === "GET" && path === "") return films(await db.list());
   if (req.method === "GET" && path === "/me") return json({ user });
   if (req.method === "GET" && path === "/search") {
     const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
@@ -147,16 +153,16 @@ async function hmdb(req, env, path, user) {
   if (path === "/add") {
     const film = (await imdbSearch(b.id)).find((x) => x.id === b.id);
     if (!film) return bad("not on IMDb");
-    return json(await db.add({ ...film, imdb: null }));
+    return films(await db.add({ ...film, imdb: null }));
   }
   if (path === "/rate") {
     const score = Math.round(Number(b.score) * 10) / 10; // one decimal: 1.0 … 10.0
     const comment = typeof b.comment === "string" ? b.comment.trim() : "";
     if (!(score >= 1 && score <= 10)) return bad("score must be 1-10");
     if (comment.length > 200) return bad("comment max 200");
-    return json(await db.rate(b.id, user, { score, comment, at: Date.now() }));
+    return films(await db.rate(b.id, user, { score, comment, at: Date.now() }));
   }
-  if (path === "/remove") return json(await db.remove(b.id));
+  if (path === "/remove") return films(await db.remove(b.id));
   return json({ error: "not found" }, 404);
 }
 
@@ -292,15 +298,9 @@ export default {
     if (m) return env.ROOMS.get(env.ROOMS.idFromName(m[1])).fetch(req);
     // /filmler and /cv: public, read-only, outside Access on purpose; GET only.
     if (path === "/api/filmler" && req.method === "GET")
-      return Response.json(await hmdbDb(env).list(), { headers: { "cache-control": "public, max-age=60" } });
-    // The Mac's IMDb scores (see imdbSearch). Outside Access too, so it holds its own key.
-    if (path === "/api/filmler/imdb" && req.method === "POST") {
-      if (!env.HMDB_FEED_KEY || req.headers.get("authorization") !== `Bearer ${env.HMDB_FEED_KEY}`) return new Response(null, { status: 403 });
-      const { id, imdb } = await req.json().catch(() => ({}));
-      if (!/^tt\d{1,10}$/.test(id) || !(imdb >= 1 && imdb <= 10)) return new Response(null, { status: 400 });
-      await hmdbDb(env).setImdb(id, imdb);
-      return new Response(null, { status: 204 });
-    }
+      return Response.json(await withImdb(await hmdbDb(env).list(), env), { headers: { "cache-control": "public, max-age=60" } });
+    // The IMDb shards are for withImdb only; not handing IMDb's dataset out from our site.
+    if (path.startsWith("/imdb/")) return new Response("not found", { status: 404 });
     if (path === "/api/cv.pdf" && req.method === "GET") return cvPdf(req, env, ctx);
     if (path === "/api/cv" && req.method === "GET") {
       const cv = await env.RESUMES.get(env.RESUMES.idFromName(OWNER)).published();
