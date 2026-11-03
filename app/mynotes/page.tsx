@@ -26,7 +26,7 @@ export default function NotesPage() {
             Longer step-by-step guides, grouped by topic.
           </p>
           <ul className="grid gap-3 sm:grid-cols-2">
-            {categories.map((c) => (
+            {categories.filter((c) => c.slug === "llm-d").map((c) => (
               <li key={c.slug}>
                 <Link
                   href={`/mynotes/${c.slug}`}
