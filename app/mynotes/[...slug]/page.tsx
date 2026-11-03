@@ -1,5 +1,7 @@
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import { GuideDetail, GuideListing } from "@/components/guide-pages"
 import { ArrowLeft } from "lucide-react"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
@@ -29,6 +31,14 @@ export async function generateStaticParams() {
   return paths
 }
 
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params
+  if (slug[0] !== "llm-d") return {}
+  const item = slug.length === 2 ? getContentBySlug(slug[1]) : undefined
+  if (item) return { title: `${item.title} – Mustafa Çavuşoğlu`, description: item.description }
+  return { title: "llm-d – Mustafa Çavuşoğlu", description: "Notes on benchmarking LLM inference with llm-d-benchmark." }
+}
+
 export default async function MyNotesCatchAllPage({ params }: PageProps) {
   const { slug } = await params
 
@@ -41,6 +51,8 @@ export default async function MyNotesCatchAllPage({ params }: PageProps) {
     if (!category || content.length === 0) {
       notFound()
     }
+
+    if (categorySlug === "llm-d") return <GuideListing title={category.name} items={content} />
 
     return (
       <div className="min-h-screen flex flex-col">
@@ -84,6 +96,8 @@ export default async function MyNotesCatchAllPage({ params }: PageProps) {
     if (!content || !cat || content.category.toLowerCase() !== categorySlug) {
       notFound()
     }
+
+    if (categorySlug === "llm-d") return <GuideDetail item={content} siblings={getContentByCategory(categorySlug)} />
 
     return (
       <div className="min-h-screen flex flex-col">
