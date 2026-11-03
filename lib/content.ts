@@ -3668,6 +3668,739 @@ spec:
 \`\`\`
 `,
   },
+  {
+    slug: "llm-d-benchmark-repo",
+    title: "llm-d Benchmark: Repo ve Kurulum",
+    description: "llm-d-benchmark aracının ne yaptığı, kurulumu ve hızlı deneme",
+    category: "llm-d",
+    tags: ["llm-d", "benchmark", "kubernetes", "setup"],
+    content: `# llm-d-benchmark
+
+[llm-d-benchmark](https://github.com/llm-d/llm-d-benchmark), \`llm-d\` inference stack'ini Kubernetes (OpenShift dahil) üzerinde kurmak, benchmark etmek, sonuçları toplamak ve sonra temizlemek için bir otomasyon aracı. Python ile yazılmış ve tek bir \`llmdbenchmark\` CLI'ı var.
+
+## Ne yapar?
+
+Her deneme dört aşamadan geçer:
+
+| Aşama | Komut | Ne yapar? |
+|---|---|---|
+| Standup | \`llmdbenchmark standup\` | Scenario'yu render eder, modeli indirir, pod'ları ayağa kaldırır |
+| Smoketest | \`llmdbenchmark smoketest\` | Endpoint'e birkaç istek atıp cevabı doğrular |
+| Run | \`llmdbenchmark run\` | Bir harness ile (inference-perf, guidellm, vllm-benchmark, aiperf, lm-eval...) yük üretir ve metrikleri toplar |
+| Teardown | \`llmdbenchmark teardown\` | Stack'i söker |
+
+Ayrıca birden çok parametre kombinasyonunu otomatik deneyen \`experiment\` (DoE) ve çalışan bir stack'i yeniden kurmadan güncelleyen \`update\` komutları var.
+
+## Kurulum
+
+\`\`\`bash
+git clone https://github.com/llm-d/llm-d-benchmark.git
+cd llm-d-benchmark
+./install.sh
+source .venv/bin/activate
+llmdbenchmark --help
+\`\`\`
+
+Python 3.14+ gerekir. Kurulum \`kubectl\`, \`helm\`, \`helmfile\` ve diğer araçları da kurar.
+
+## Hızlı deneme
+
+Kind üzerinde CPU ile, GPU gerektirmeden akışı denemek için:
+
+\`\`\`bash
+kind create cluster --name llmd-quickstart
+export NS=llmd-quickstart
+llmdbenchmark --spec cicd/kind standup -p "$NS" --skip-smoketest
+llmdbenchmark --spec cicd/kind smoketest -p "$NS"
+llmdbenchmark --spec cicd/kind run -p "$NS" -l inference-perf -w sanity_random.yaml
+llmdbenchmark --spec cicd/kind teardown -p "$NS"
+\`\`\`
+
+Kind'da çalışan model simüle edilir. Buradaki performans sayıları anlamlı değildir, sadece akışı görmek içindir.
+
+## Sık kullanılan kavramlar
+
+- **Scenario (\`--spec\`, \`-c\`)**: Model, GPU, paralellik ve namespace ayarlarının YAML'ı. Hazır olanlar \`config/scenarios/\` altında.
+- **Deploy method (\`-t\`)**: \`modelservice\` (varsayılan) veya \`standalone\`.
+- **Harness (\`-l\`) ve workload profile (\`-w\`)**: Yük aracı ve yük senaryosu.
+- **Experiment**: Birden çok ayarı sırayla deneyip sonuçları karşılaştırma.
+- **\`--set KEY=VALUE\`**: Scenario'daki herhangi bir değeri komut satırından değiştirme.
+
+## Daha fazlası
+
+Basitten ileriye kapsamlı rehber ve DeepSeek V4.1 Flash 1017 örnekleri için bu bölümdeki diğer notlara bak.
+
+Kaynak: [github.com/llm-d/llm-d-benchmark](https://github.com/llm-d/llm-d-benchmark)
+`,
+  },
+  {
+    slug: "llm-d-benchmark-guide",
+    title: "llm-d Benchmark: Başlangıç Rehberi",
+    description: "Basitten ileriye, 32 B300 üzerinde DeepSeek-V4.1-Flash-1017 için kapsamlı rehber",
+    category: "llm-d",
+    tags: ["llm-d", "benchmark", "guide", "vllm"],
+    content: `# llm-d-benchmark: Başlangıç Rehberi
+
+Bu rehber, [llm-d-benchmark](https://github.com/llm-d/llm-d-benchmark) aracını ilk kez kullananlar için yazıldı. Hedef: **32 × NVIDIA B300** üzerinde **\`deepseek-ai/DeepSeek-V4.1-Flash-1017\`** modelini Kubernetes'e deploy edip benchmark etmek.
+
+Rehber basitten ileriye doğru ilerler:
+
+1. Temel kavramlar
+2. Ön koşullar ve kurulum
+3. Seviye 1: Küçük bir model ile akışı doğrulama
+4. Seviye 2: DeepSeek V4.1 Flash, tek bir yapılandırma
+5. Seviye 3: Tensor paralel (TP) ve pipeline paralel (PP) karşılaştırması
+6. Seviye 4: Prefill/decode ayrımı (ileri)
+7. Seviye 5: Wide-EP / Data-parallel + Expert-parallel (çok ileri)
+8. Sonuçları okuma
+9. Temizlik
+10. Sorun giderme
+11. Komut referansı
+
+> **Önemli not:** Bu rehberdeki bazı değerler (ör. \`maxModelLen\`, \`gpuMemoryUtilization\`, node başına GPU sayısı) bizim önerimiz. Repo bunları sizin donanımınız için hazır sunmuyor. Her yeni yapılandırmayı önce **dry-run** (\`standup -n\`) ile kontrol et, sonra gerçekten deploy et.
+
+---
+
+## 1. Temel kavramlar
+
+| Kavram | Ne demek? |
+|---|---|
+| **Scenario (senaryo)** | Bir deployment'ın tüm ayarlarını tutan YAML dosyası: hangi model, kaç GPU, hangi paralellik, hangi namespace. \`config/scenarios/\` altında hazır olanlar var. |
+| **Spec** | Scenario'yu adıyla çağırma. Örn. \`--spec guides/optimized-baseline\`. |
+| **Stack** | Scenario'nun ayağa kaldırdığı çalışan sistem (vLLM pod'ları + gateway + router). |
+| **Namespace (\`-p\`)** | Kubernetes'te kaynakların gruplandığı alan. Her deneme için ayrı bir namespace kullanmanı öneririm. |
+| **Standup** | Stack'i kurar: model indirilir, pod'lar başlar. |
+| **Smoketest** | Stack'e birkaç istek atıp cevap veriyor mu diye kontrol eder. |
+| **Run** | Benchmark'ı çalıştırır (yük üretir, metrik toplar). |
+| **Teardown** | Stack'i söker. |
+| **Experiment** | Standup + run + teardown'u birçok parametre kombinasyonu için otomatik tekrarlar. |
+| **Harness** | Yük üreten araç. Repoda: \`inference-perf\`, \`guidellm\`, \`vllm-benchmark\`, \`aiperf\`, \`lm-eval\`, \`inferencemax\`, \`nop\`. |
+| **Workload profile** | Harness'e verilen yük senaryosu. Örn. \`sanity_random.yaml\`, \`shared_prefix_synthetic.yaml\`. |
+| **Deploy method** | \`modelservice\` (llm-d chart'ları, varsayılan) veya \`standalone\` (tek bir vLLM deployment). |
+
+### Paralellik terimleri (vLLM)
+
+| Terim | Ne yapar? | Bizim anahtarımız |
+|---|---|---|
+| **TP (Tensor Parallel)** | Modelin katmanlarını GPU'lar arasında böler. Tek replika birden çok GPU kullanır. | \`decode.parallelism.tensor\` |
+| **PP (Pipeline Parallel)** | Modelin katman gruplarını sıralı GPU'lara dağıtır. Node'lar arası için kullanılır. | Hazır anahtar yok, \`decode.vllm.additionalFlags\` ile \`--pipeline-parallel-size\` eklenir (Seviye 3) |
+| **DP (Data Parallel)** | Aynı modelin birden çok kopyasını çalıştırır, istekleri böler. | \`decode.parallelism.data\`, \`dataLocal\` |
+| **EP (Expert Parallel)** | MoE modellerde uzmanları (expert) GPU'lara dağıtır. | Wide-EP guide'ında \`--enable-expert-parallel\` ile (Seviye 5) |
+| **Replica** | Bağımsız bir vLLM kopyası. | \`decode.replicas\` |
+
+**Toplam GPU hesabı (modelservice, decode için):**
+
+\`\`\`
+toplam GPU = decode.replicas × decode.parallelism.tensor × decode.parallelism.dataLocal
+\`\`\`
+
+Eğer \`decode.accelerator.count\` tanımlıysa, pod başına GPU sayısı oradan okunur. PP kullanırken bunu mutlaka tanımla (Seviye 3'te nedenini göreceksin).
+
+---
+
+## 2. Ön koşullar ve kurulum
+
+### 2.1 Cluster hazırlığı
+
+Şunları kontrol et:
+
+\`\`\`bash
+# Cluster'a bağlı mısın?
+kubectl get nodes
+
+# GPU'lar görünüyor mu? (32 GPU için toplam ~32 olmalı)
+kubectl get nodes -o custom-columns=NAME:.metadata.name,GPU:.status.allocatable.nvidia\\\\.com/gpu
+
+# Node'larda hangi GPU etiketi var? (nodeSelector için lazım olabilir)
+kubectl get nodes -L nvidia.com/gpu.product
+\`\`\`
+
+Kontrol edilecekler:
+
+- **GPU sayısı:** \`nvidia.com/gpu\` kapasitesi 32 mi? B300 HGX node'ları genelde 8 GPU taşır. Bu rehber 4 node × 8 GPU varsayar. Farklıysa TP ve replika hesaplarını buna göre yeniden yap.
+- **Storage:** Model PVC'si için yeterli alan ve bir \`ReadWriteMany\` destekleyen storage class. Model ağırlıkları yaklaşık **763B parametre**. Güvenli başlangıç için **\`1Ti\`** PVC kullan. Varsayılan \`300Gi\` bu model için yetmez.
+- **Kubeconfig:** \`kubectl\` komutları çalışıyorsa \`llmdbenchmark\` de kullanır. Farklı bir kubeconfig gerekirse \`-k FILE\` ile verirsin.
+
+### 2.2 Model hakkında bilinenler
+
+- **HF id:** \`deepseek-ai/DeepSeek-V4.1-Flash-1017\`
+- **Boyut:** 763B parametre. Safetensors'ta BF16, F32, F8_E4M3 ve I8 tensörleri var. Yani ağırlıklar FP8 ağırlıklıdır.
+- **Bağlam:** Önerilen 1M token. Test için bunu düşür (örn. 32768), çünkü KV cache GPU belleğini hızla doldurur.
+- **Lisans:** MIT.
+- **Multimodal görünüyor** (image-text-to-text etiketi).
+- **Serve komutu (HF sayfası):** \`vllm serve "deepseek-ai/DeepSeek-V4.1-Flash-1017"\`. TP/PP/DP ayarı sayfada yok, bu yüzden aşağıdaki ayarları kendimiz seçiyoruz.
+
+Gated model değilse HF token zorunlu değil. Yine de rate limit için \`LLMDBENCH_HF_TOKEN\` ayarlamak iyi olur:
+
+\`\`\`bash
+export LLMDBENCH_HF_TOKEN="hf_xxx"
+\`\`\`
+
+### 2.3 Aracı kurma
+
+\`\`\`bash
+git clone https://github.com/llm-d/llm-d-benchmark.git
+cd llm-d-benchmark
+./install.sh
+source .venv/bin/activate
+llmdbenchmark --help
+\`\`\`
+
+Kurulum \`.venv/\` oluşturur. Bu yüzden \`-y\` bayrağını **kullanma** (yerel geliştirme için sistem Python'unu kirletir). \`--help\` çıktısında şu alt komutları görmelisin: \`plan\`, \`standup\`, \`update\`, \`smoketest\`, \`run\`, \`teardown\`, \`experiment\`, \`results\`.
+
+Python sürümünün 3.14+ olması gerekiyor (\`python3 --version\`).
+
+### 2.4 Global flag'ler
+
+- \`--spec SCENARIO\`: Hangi scenario ile çalışılacağı (ör. \`--spec guides/optimized-baseline\`).
+- \`-c FILE\`: Kendi scenario YAML dosyanı verirsin (ör. \`-c ds-v4-flash-tp8.yaml\`).
+- \`-p NS\`: Namespace.
+- \`-m MODEL\`: Model adı (ör. \`-m deepseek-ai/DeepSeek-V4.1-Flash-1017\`).
+- \`--set KEY=VALUE\`: Scenario'daki herhangi bir değeri komut satırından ezer. Nokta ile ayrılmış yolları kullanır (ör. \`--set decode.replicas=4\`).
+- \`-n\`: Dry-run. Hiçbir şeyi deploy etmeden YAML'ları render eder.
+- \`-s STEPS\`: Sadece belirli adımları çalıştır (ör. \`-s 3-5\`).
+
+> \`-m\` değeri \`--set model.name\` değerini geçersiz kılar. Modeli \`-m\` ile vermek daha güvenlidir.
+
+---
+
+## 3. Seviye 1: Küçük bir model ile akışı doğrula
+
+Büyük modele geçmeden önce tüm boru hattını küçük bir modelle denemek en iyi yoldur. Bu sayede kurulum, storage, GPU etiketleri ve harness'in çalıştığını görürsün. Burada \`facebook/opt-125m\` kullanıyoruz (küçük, public, GPU'da hızlı).
+
+\`\`\`bash
+# Önce dry-run
+llmdbenchmark --spec examples/gpu standup -n -p llmd-smoke -m facebook/opt-125m
+
+# Gerçek deployment
+llmdbenchmark --spec examples/gpu standup -p llmd-smoke -m facebook/opt-125m --skip-smoketest
+
+# Stack'in cevap verdiğini kontrol et
+llmdbenchmark --spec examples/gpu smoketest -p llmd-smoke
+
+# Kısa bir benchmark
+llmdbenchmark --spec examples/gpu run -p llmd-smoke -l inference-perf -w sanity_random.yaml
+
+# Temizlik
+llmdbenchmark --spec examples/gpu teardown -p llmd-smoke
+\`\`\`
+
+**Ne görmelisin?**
+
+- \`standup\` sonunda pod'lar \`Running\` ve \`Ready\`.
+- \`smoketest\` hata vermeden biter.
+- \`run\` sonunda sonuç klasörünün yolu yazılır (\`/.../results/\` gibi).
+
+Bu adımlar sorunsuzsa büyük modele geçebilirsin.
+
+---
+
+## 4. Seviye 2: DeepSeek V4.1 Flash, tek yapılandırma
+
+**Hedef:** 32 GPU'yu 4 replikaya böl, her replika TP=8 kullansın. Bu en sade yapılandırma ve ilk denemen için önerilir.
+
+\`\`\`
+replika: 4
+TP: 8 (her replika 8 GPU, yani bir node)
+toplam GPU: 4 × 8 × 1 = 32
+\`\`\`
+
+### 4.1 Scenario dosyası
+
+\`ds-v4-flash-tp8.yaml\` adında bir dosya oluştur:
+
+\`\`\`yaml
+scenario:
+  - name: ds-v4-flash-tp8
+
+    common:
+      model:
+        name: deepseek-ai/DeepSeek-V4.1-Flash-1017
+        shortName: deepseek-v4-1-flash-1017
+        path: models/deepseek-ai/DeepSeek-V4.1-Flash-1017
+        huggingfaceId: deepseek-ai/DeepSeek-V4.1-Flash-1017
+        maxModelLen: 32768        # Test için düşük tuttuk, 1M'e çıkabilirsin
+        gpuMemoryUtilization: 0.90
+
+      storage:
+        modelPvc:
+          size: 1Ti               # Model ağırlıkları için yeterli alan
+
+    decode:
+      replicas: 4
+      parallelism:
+        tensor: 8                 # Her replika 8 GPU kullanır
+\`\`\`
+
+> Bu dosyanın yapısı \`config/scenarios/guides/wide-ep.yaml\` ve \`config/scenarios/examples/gpu.yaml\` dosyalarındaki stack bloğuna benzer. Diğer alanlar için repodaki varsayılanlar (\`config/templates/values/defaults.yaml\`) geçerli olur.
+
+### 4.2 Dry-run
+
+Gerçek deploy'dan önce render edilen YAML'ları kontrol et:
+
+\`\`\`bash
+llmdbenchmark -c ds-v4-flash-tp8.yaml standup -n -p ds-tp8
+\`\`\`
+
+Kontrol edilecekler:
+
+- \`--tensor-parallel-size 8\` görünüyor mu?
+- Replika sayısı 4 mü?
+- Storage 1Ti mi?
+- Model adı doğru mu?
+
+### 4.3 Deploy, test, temizlik
+
+\`\`\`bash
+# Deploy (smoketest'i de çalıştırır)
+llmdbenchmark -c ds-v4-flash-tp8.yaml standup -p ds-tp8
+
+# Ayrıca smoketest (isteğe bağlı, standup zaten yapıyor)
+llmdbenchmark -c ds-v4-flash-tp8.yaml smoketest -p ds-tp8
+
+# Benchmark: önce hafif bir profil
+llmdbenchmark -c ds-v4-flash-tp8.yaml run -p ds-tp8 \\
+  -m deepseek-ai/DeepSeek-V4.1-Flash-1017 \\
+  -l inference-perf -w sanity_random.yaml
+\`\`\`
+
+**Model indirme uzun sürebilir** (yaklaşık 763B parametre). İlk standup'ta bu normal. Pod'ları \`kubectl get pods -n ds-tp8 -w\` ile izleyebilirsin.
+
+### 4.4 Profil seçimi
+
+| Profil | Ne test eder? | Ne zaman? |
+|---|---|---|
+| \`sanity_random.yaml\` | Her şey çalışıyor mu? | İlk deneme |
+| \`chatbot_synthetic.yaml\` | Sohbet benzeri yük | Genel performans |
+| \`shared_prefix_synthetic.yaml\` | Ortak prefix (prefix cache) etkisi | Cache ve routing testleri |
+| \`summarization_synthetic.yaml\` | Uzun girdi, kısa çıktı | RAG benzeri iş yükleri |
+
+Harness'e göre hazır profil listesi \`docs/run.md\` içindeki "Profiles" bölümünde. Yük değerleri (rate, duration) bu model için düşük kalabilir. İlk sonuçlara göre artır.
+
+---
+
+## 5. Seviye 3: TP vs PP karşılaştırması
+
+Bu seviye, aynı 32 GPU'yu farklı paralellik düzenleriyle deneyip sonuçları karşılaştırmak için.
+
+### 5.1 Karşılaştırma düzenleri
+
+| Düzen | Replika | TP | PP | Pod başına GPU | Toplam GPU |
+|---|---|---|---|---|---|
+| A | 4 | 8 | 1 | 8 | 32 |
+| B | 4 | 4 | 2 | 8 | 32 |
+| C | 8 | 4 | 1 | 4 | 32 |
+| D | 2 | 8 | 2 | 16 | 32 |
+
+Karşılaştırmanın adil olması için **toplam GPU sabit** tutuldu.
+
+### 5.2 PP nasıl verilir?
+
+Repoda PP için hazır bir anahtar yok. vLLM'in standart komutunu bozmadan ek bayrak eklemek için \`decode.vllm.additionalFlags\` kullanılır. Bu liste, varsayılan komutun sonuna eklenir:
+
+\`\`\`yaml
+    decode:
+      replicas: 4
+      parallelism:
+        tensor: 4                 # TP=4
+      accelerator:
+        count: 8                  # Pod başına 8 GPU (TP × PP = 4 × 2)
+      vllm:
+        additionalFlags:
+          - "--pipeline-parallel-size 2"
+\`\`\`
+
+**Neden \`accelerator.count: 8\`?** Repo, pod başına GPU sayısını varsayılan olarak \`tensor × dataLocal\` ile hesaplar. Yani \`tensor: 4\` ise 4 GPU ister, ama PP=2 için 8 GPU gerekir. Bu değeri atlarsan pod'lar eksik GPU ile başlar ve hata verir.
+
+> **Not:** PP için \`customCommand\` yazmaya gerek yok. \`additionalFlags\` ile PP eklemek yeterli. \`customCommand\` yalnızca varsayılan komutun tamamen farklı olması gerektiğinde kullanılmalı, çünkü \`vllmCommon.flags\` gibi ayarları devre dışı bırakır.
+
+### 5.3 Düzen B'yi deploy et
+
+\`ds-v4-flash-tp4-pp2.yaml\`:
+
+\`\`\`yaml
+scenario:
+  - name: ds-v4-flash-tp4-pp2
+
+    common:
+      model:
+        name: deepseek-ai/DeepSeek-V4.1-Flash-1017
+        shortName: deepseek-v4-1-flash-1017
+        path: models/deepseek-ai/DeepSeek-V4.1-Flash-1017
+        huggingfaceId: deepseek-ai/DeepSeek-V4.1-Flash-1017
+        maxModelLen: 32768
+        gpuMemoryUtilization: 0.90
+      storage:
+        modelPvc:
+          size: 1Ti
+
+    decode:
+      replicas: 4
+      parallelism:
+        tensor: 4
+      accelerator:
+        count: 8
+      vllm:
+        additionalFlags:
+          - "--pipeline-parallel-size 2"
+\`\`\`
+
+\`\`\`bash
+llmdbenchmark -c ds-v4-flash-tp4-pp2.yaml standup -n -p ds-tp4pp2   # dry-run
+llmdbenchmark -c ds-v4-flash-tp4-pp2.yaml standup -p ds-tp4pp2
+llmdbenchmark -c ds-v4-flash-tp4-pp2.yaml run -p ds-tp4pp2 \\
+  -m deepseek-ai/DeepSeek-V4.1-Flash-1017 \\
+  -l inference-perf -w shared_prefix_synthetic.yaml
+\`\`\`
+
+### 5.4 Adil karşılaştırma kuralları
+
+- **Aynı workload profile** ve aynı parametrelerle çalıştır.
+- **Her düzeni ayrı namespace'te** çalıştır (\`ds-tp8\`, \`ds-tp4pp2\`). Bu sayede birbirini etkilemezler.
+- **Her düzeni çalıştırdıktan sonra teardown** yap, sonra bir sonrakini kur. Aynı anda 32 GPU'dan fazlasını kullanamazsın.
+- Düzenleri alt alta karşılaştırmak için sonuç klasörlerindeki raporları yan yana koy.
+
+### 5.5 Experiment ile otomatik sweep (isteğe bağlı)
+
+Birden çok düzeni tek komutla sırayla çalıştırmak için \`experiment\` kullanılabilir. Bu, repodaki \`experiments/optimized-baseline.yaml\` örneğine dayanır:
+
+\`\`\`yaml
+experiment:
+  name: ds-v4-flash-tp-pp
+  harness: inference-perf
+  profile: shared_prefix_synthetic.yaml
+
+design:
+  type: full_factorial
+  setup:
+    factors:
+      - name: layout
+        key: scenario_override
+        levels: [ds-v4-flash-tp8, ds-v4-flash-tp4-pp2]
+  run:
+    factors:
+      - name: question_len
+        key: data.shared_prefix.question_len
+        levels: [100, 300, 1000]
+        unit: tokens
+\`\`\`
+
+\`\`\`bash
+llmdbenchmark -c ds-v4-flash-tp8.yaml experiment --experiments experiments/ds-v4-flash-tp-pp.yaml
+\`\`\`
+
+> **Dikkat:** \`scenario_override\` seviyelerinin senaryo dosyalarını hangi yoldan bulduğunu repo dokümanları tam açıklamıyor. İlk çalıştırmadan önce \`docs/doe.md\` dosyasını oku ve \`--dry-run\` ile doğrula. Emin değilsen önce tek tek \`run\` ile ilerle.
+
+---
+
+## 6. Seviye 4: Prefill / decode ayrımı (ileri)
+
+Prefill (girdi işleme) ve decode (çıktı üretme) aşamaları ayrı GPU'lara konabilir. Uzun girdili iş yüklerinde bu genellikle verimi artırır.
+
+Hazır bir guide var: \`config/scenarios/guides/pd-disaggregation.yaml\`. Bu guide ayrı \`prefill\` ve \`decode\` blokları kullanır. 32 GPU için örnek bir bütçe:
+
+\`\`\`
+prefill: 2 replika × TP 8 = 16 GPU
+decode:  2 replika × TP 8 = 16 GPU
+toplam: 32 GPU
+\`\`\`
+
+\`\`\`bash
+llmdbenchmark --spec guides/pd-disaggregation standup -n -p ds-pd \\
+  -m deepseek-ai/DeepSeek-V4.1-Flash-1017 \\
+  --set prefill.replicas=2 --set prefill.parallelism.tensor=8 \\
+  --set decode.replicas=2 --set decode.parallelism.tensor=8
+\`\`\`
+
+Dry-run çıktısını dikkatle incele: guide'ın diğer alanları (ör. model boyutu, storage, resource limitleri) bu model için uygun olmayabilir. Gerekirse \`--set\` ile düzelt veya bir scenario dosyası oluştur.
+
+\`--set\` parametreleri tam olarak \`pd-disaggregation.yaml\`'daki anahtarlarla eşleşmeli. Dry-run'da hata görürsen anahtar adını o dosyadan kontrol et.
+
+---
+
+## 7. Seviye 5: Wide-EP (DP + EP), çok ileri
+
+MoE modellerde büyük ölçekte verim için **data parallel + expert parallel** kullanılır. Repodaki \`config/scenarios/guides/wide-ep.yaml\` bu yapıyı LeaderWorkerSet (LWS) ile kurar. Önemli farklar:
+
+- \`multinode.enabled: true\` (LWS gerekir)
+- \`decode.parallelism.tensor: 1\`, \`dataLocal: 8\` (node başına 8 GPU), \`workers\` ile node sayısı belirlenir
+- vLLM komutunda \`--enable-expert-parallel\`, \`--data-parallel-size\`, \`--data-parallel-size-local\`
+
+Bu yapı 32 GPU'da 4 node'a yayılabilir (\`workers: 4\` gibi). Ancak:
+
+- Guide varsayılan olarak Qwen3-30B-A3B kullanır. DeepSeek V4.1 için model ve tüm vLLM komutunu uyarlamak gerekir.
+- Hata ayıklaması zordur. Önce Seviye 2 veya 3'ü başarıyla çalıştır.
+
+Bu seviyeye ancak diğer seviyeler çalıştıktan sonra geç.
+
+---
+
+## 8. Sonuçları okuma
+
+\`run\` bittiğinde sonuç klasörünün yolu terminale yazılır. İçinde:
+
+- **Benchmark report** (YAML ve JSON): Özet metrikler.
+- **Ham sonuçlar**: Harness'in çıktıları.
+- **Prometheus metrikleri** (varsa): Pod seviyesinde GPU ve kuyruk bilgileri.
+
+Ölçülen temel metrikler:
+
+| Metrik | Anlamı |
+|---|---|
+| TTFT (Time to First Token) | İlk token'a kadar geçen süre. Kullanıcının "ne kadar bekledim" hissi. |
+| TPOT (Time per Output Token) | Her çıktı token'ı için ortalama süre. Akış hızı. |
+| ITL (Inter Token Latency) | Decode token'ları arasındaki süre. |
+| Output tokens/sec | Toplam çıktı verimi. |
+| Requests/sec | Saniyedeki istek sayısı. |
+| Failure rate | Başarısız istek oranı. |
+
+\`llmdbenchmark run\` varsayılan olarak \`llm-d-prism\` görselleştirme aracını cluster içinde kurar. Kapatmak için \`--no-prism\` kullan. Prism raporları doğrudan workload PVC'sinden okur.
+
+Sonuçları yerelde incelemek için: \`run\` sonunda yazılan klasöre git. Raporlar YAML/JSON olarak oradadır.
+
+> \`llmdbenchmark results\` komutu merkezi bir **Results Store** içindir (GCS tabanlı). Yerel sonuçları görüntülemek için kullanılmaz.
+
+---
+
+## 9. Temizlik
+
+\`\`\`bash
+llmdbenchmark -c ds-v4-flash-tp8.yaml teardown -p ds-tp8
+\`\`\`
+
+- Teardown stack'i söker. **Model PVC'sinin silinip silinmediğini** dry-run veya \`llmdbenchmark teardown --help\` ile kontrol et. PVC silinirse bir sonraki standup'ta 763B model baştan indirilir (uzun sürer).
+- Birden çok namespace kullandıysan her birini ayrı teardown et.
+
+Tüm GPU'ları boşaltıp kontrol et:
+
+\`\`\`bash
+kubectl get pods -A | grep -E 'vllm|llmd|harness'
+\`\`\`
+
+---
+
+## 10. Sorun giderme
+
+| Belirti | Olası neden | Ne yapmalı? |
+|---|---|---|
+| Pod \`Pending\` kalıyor, \`Insufficient nvidia.com/gpu\` | GPU'lar başka pod'lar tarafından kullanılıyor ya da kapasite yok | \`kubectl describe pod -n NS POD\`; önceki deployment'ları teardown et |
+| Pod \`Pending\`, \`unbound PVC\` | Storage class yok ya da PVC bağlanamadı | \`kubectl get pvc -n NS\`; storage class'ı scenario'da belirt |
+| \`run\` PVC bekleyip zaman aşımına uğruyor | İlk çalıştırmada PVC bağlanma süresi | \`--pvc-bind-timeout 600\` ile süreyi artır |
+| vLLM \`OutOfMemory\` | Bellek yetmiyor | \`maxModelLen\`'i düşür, \`gpuMemoryUtilization\`'ı 0.85'e çek, TP'yi artır |
+| \`trust_remote_code\` hatası | Model özel kod istiyor | \`decode.vllm.additionalFlags\` içine \`"--trust-remote-code"\` ekle |
+| HF indirme hatası (401/403) | Token eksik ya da model gated | \`LLMDBENCH_HF_TOKEN\` ayarla |
+| PP ile pod'lar başlamıyor | GPU sayısı yanlış | \`decode.accelerator.count\` değerini \`tensor × PP\` olarak ayarla |
+| Model indirme çok yavaş | Ağ hızı | Normal; ilk seferde uzun sürer |
+
+Pod loglarını görmek için:
+
+\`\`\`bash
+kubectl get pods -n ds-tp8
+kubectl logs -n ds-tp8 POD_ADI
+kubectl describe pod -n ds-tp8 POD_ADI
+\`\`\`
+
+Her çalıştırmanın dosyaları bir workspace klasöründe tutulur (varsayılan \`/tmp/<kullanıcı>-<zaman>\`). Tüm dosyaları tek yerde görmek için \`LLMDBENCH_CONTROL_WORK_DIR\` değişkenini önceden ayarla. Hataları bulmak için bu klasöre bak.
+
+---
+
+## 11. Komut referansı (kısa)
+
+\`\`\`bash
+# Kurulum
+./install.sh && source .venv/bin/activate
+
+# Dry-run (hiçbir şey deploy etmez)
+llmdbenchmark -c FILE.yaml standup -n -p NS
+
+# Deploy (standup + smoketest)
+llmdbenchmark -c FILE.yaml standup -p NS
+
+# Sadece smoketest
+llmdbenchmark -c FILE.yaml smoketest -p NS
+
+# Benchmark
+llmdbenchmark -c FILE.yaml run -p NS -m MODEL -l HARNESS -w PROFILE.yaml
+
+# Çalışan stack'te değişiklik (yeniden deploy etmeden)
+llmdbenchmark -c FILE.yaml update -p NS --set decode.replicas=2
+
+# Otomatik deney (birden çok düzen)
+llmdbenchmark -c FILE.yaml experiment --experiments EXP.yaml
+
+# Temizlik
+llmdbenchmark -c FILE.yaml teardown -p NS
+\`\`\`
+
+**Sık kullanılan flag'ler:**
+
+| Flag | Anlamı |
+|---|---|
+| \`-c FILE\` | Scenario dosyası |
+| \`--spec NAME\` | Hazır scenario adı |
+| \`-p NS\` | Namespace |
+| \`-m MODEL\` | Model |
+| \`-t standalone\\|modelservice\` | Deploy yöntemi |
+| \`-l HARNESS\` | Harness (\`inference-perf\`, \`guidellm\`, \`vllm-benchmark\`...) |
+| \`-w PROFILE\` | Workload profile |
+| \`-n\` | Dry-run |
+| \`-s STEPS\` | Belirli adımlar (ör. \`3-5\`) |
+| \`--set KEY=VALUE\` | Scenario değerini komut satırından ezer |
+| \`--skip-smoketest\` | Standup sonrası smoketest'i atla |
+| \`--no-prism\` | Prism görselleştirmeyi kurma |
+
+---
+
+## Önerilen ilk gün planı
+
+1. Cluster'ı kontrol et (\`kubectl get nodes\`, GPU kapasitesi).
+2. Aracı kur (\`./install.sh\`).
+3. **Seviye 1**: \`facebook/opt-125m\` ile tüm döngüyü çalıştır.
+4. **Seviye 2**: \`ds-v4-flash-tp8.yaml\` için dry-run yap, sonra deploy et ve \`sanity_random\` ile test et.
+5. Sonuçları incele, sonra **Seviye 3** ile TP/PP karşılaştırmasına geç.
+`,
+  },
+  {
+    slug: "deepseek-v4-1-flash-1017-benchmark",
+    title: "DeepSeek V4.1 Flash 1017: Benchmark",
+    description: "TP8 ve TP4×PP2 scenario dosyaları, dry-run ve benchmark komutları",
+    category: "llm-d",
+    tags: ["deepseek", "tensor-parallel", "pipeline-parallel", "benchmark"],
+    content: `# DeepSeek V4.1 Flash 1017: Benchmark Örnekleri
+
+Hedef: 32 × NVIDIA B300 üzerinde \`deepseek-ai/DeepSeek-V4.1-Flash-1017\` modelini deploy edip benchmark etmek. Bu sayfa, kopyalayıp uyarlayabileceğin scenario dosyalarını ve komutları içerir.
+
+> Önce dry-run (\`standup -n\`) ile render edilen YAML'ları kontrol et. Aşağıdaki \`maxModelLen\`, \`gpuMemoryUtilization\`, PVC boyutu ve node başına 8 GPU değerleri başlangıç önerileridir, senin cluster'ına göre değiştir.
+
+## Model
+
+- HF id: \`deepseek-ai/DeepSeek-V4.1-Flash-1017\`
+- 763B parametre, FP8 (F8_E4M3) ağırlıklı Safetensors
+- Önerilen bağlam 1M token, test için düşük tut
+- MIT lisansı
+
+## Düzen 1: TP8 × 4 replika (32 GPU)
+
+En sade yapı. Her replika bir node'un 8 GPU'sunu kullanır.
+
+\`\`\`
+replika: 4 × TP: 8 = 32 GPU
+\`\`\`
+
+\`ds-v4-flash-tp8.yaml\`:
+
+\`\`\`yaml
+scenario:
+  - name: ds-v4-flash-tp8
+
+    common:
+      model:
+        name: deepseek-ai/DeepSeek-V4.1-Flash-1017
+        shortName: deepseek-v4-1-flash-1017
+        path: models/deepseek-ai/DeepSeek-V4.1-Flash-1017
+        huggingfaceId: deepseek-ai/DeepSeek-V4.1-Flash-1017
+        maxModelLen: 32768
+        gpuMemoryUtilization: 0.90
+
+      storage:
+        modelPvc:
+          size: 1Ti
+
+    decode:
+      replicas: 4
+      parallelism:
+        tensor: 8
+\`\`\`
+
+Dry-run:
+
+\`\`\`bash
+llmdbenchmark -c ds-v4-flash-tp8.yaml standup -n -p ds-tp8
+\`\`\`
+
+Deploy ve benchmark:
+
+\`\`\`bash
+llmdbenchmark -c ds-v4-flash-tp8.yaml standup -p ds-tp8
+llmdbenchmark -c ds-v4-flash-tp8.yaml run -p ds-tp8 \\
+  -m deepseek-ai/DeepSeek-V4.1-Flash-1017 \\
+  -l inference-perf -w sanity_random.yaml
+llmdbenchmark -c ds-v4-flash-tp8.yaml teardown -p ds-tp8
+\`\`\`
+
+## Düzen 2: TP4 × PP2 × 4 replika (32 GPU)
+
+Pipeline paralel için repoda hazır bir anahtar yok. \`--pipeline-parallel-size\` bayrağı \`decode.vllm.additionalFlags\` ile eklenir.
+
+\`\`\`
+replika: 4 × TP: 4 × PP: 2 = 32 GPU
+\`\`\`
+
+\`ds-v4-flash-tp4-pp2.yaml\`:
+
+\`\`\`yaml
+scenario:
+  - name: ds-v4-flash-tp4-pp2
+
+    common:
+      model:
+        name: deepseek-ai/DeepSeek-V4.1-Flash-1017
+        shortName: deepseek-v4-1-flash-1017
+        path: models/deepseek-ai/DeepSeek-V4.1-Flash-1017
+        huggingfaceId: deepseek-ai/DeepSeek-V4.1-Flash-1017
+        maxModelLen: 32768
+        gpuMemoryUtilization: 0.90
+
+      storage:
+        modelPvc:
+          size: 1Ti
+
+    decode:
+      replicas: 4
+      parallelism:
+        tensor: 4
+      accelerator:
+        count: 8
+      vllm:
+        additionalFlags:
+          - "--pipeline-parallel-size 2"
+\`\`\`
+
+\`accelerator.count: 8\` zorunlu. Bu olmazsa repo pod başına \`tensor × dataLocal = 4\` GPU ister, ama PP=2 için 8 gerekir.
+
+\`\`\`bash
+llmdbenchmark -c ds-v4-flash-tp4-pp2.yaml standup -n -p ds-tp4pp2
+llmdbenchmark -c ds-v4-flash-tp4-pp2.yaml standup -p ds-tp4pp2
+llmdbenchmark -c ds-v4-flash-tp4-pp2.yaml run -p ds-tp4pp2 \\
+  -m deepseek-ai/DeepSeek-V4.1-Flash-1017 \\
+  -l inference-perf -w shared_prefix_synthetic.yaml
+llmdbenchmark -c ds-v4-flash-tp4-pp2.yaml teardown -p ds-tp4pp2
+\`\`\`
+
+## Karşılaştırma kuralları
+
+- İki düzeni de **aynı workload profile** ve aynı parametrelerle çalıştır.
+- Her düzen için **ayrı namespace** kullan, aynı anda ikisini kurma (32 GPU sınırı).
+- Bir düzeni bitirip teardown ettikten sonra diğerini kur.
+- Toplam GPU sayısını sabit tut: TP × PP × replika = 32.
+
+## Sık kullanılan workload profilleri
+
+| Profil | Ne test eder? |
+|---|---|
+| \`sanity_random.yaml\` | Her şey çalışıyor mu? İlk deneme için |
+| \`chatbot_synthetic.yaml\` | Sohbet benzeri yük |
+| \`shared_prefix_synthetic.yaml\` | Ortak prefix ve prefix cache etkisi |
+| \`summarization_synthetic.yaml\` | Uzun girdi, kısa çıktı |
+
+## Sorun giderme (kısa)
+
+- **Pod \`Pending\`, \`Insufficient nvidia.com/gpu\`**: Başka bir deployment GPU'ları tutuyor olabilir. Önce teardown et.
+- **OutOfMemory**: \`maxModelLen\`'i düşür veya \`gpuMemoryUtilization\`'ı 0.85 yap.
+- **\`trust_remote_code\` hatası**: \`decode.vllm.additionalFlags\` listesine \`"--trust-remote-code"\` ekle.
+- **Model indirme 401/403**: \`export LLMDBENCH_HF_TOKEN=...\` ayarla.
+`,
+  },
 ]
 
 export const categories = [
@@ -3679,6 +4412,7 @@ export const categories = [
   { name: "uv", slug: "uv", count: allContent.filter((c) => c.category === "uv").length },
   { name: "Miniconda", slug: "miniconda", count: allContent.filter((c) => c.category === "Miniconda").length },
   { name: "OpenShift", slug: "openshift", count: allContent.filter((c) => c.category === "OpenShift").length },
+  { name: "llm-d", slug: "llm-d", count: allContent.filter((c) => c.category === "llm-d").length },
 ]
 
 function extractCommands(content: string): string[] {
