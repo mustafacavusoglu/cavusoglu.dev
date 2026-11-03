@@ -3,7 +3,20 @@
 /experiences /#experience 301
 /projects /#projects 301
 /category/* /mynotes 301
-# llm-d guides live under /mynotes/llm-d (kept open, before the catch-all)
-/mynotes/llm-d /mynotes/llm-d 200
-/mynotes/llm-d/* /mynotes/llm-d/:splat 200
-/mynotes/* /mynotes 301
+# Old guide categories folded into /mynotes. llm-d guides stay open.
+/mynotes/linux /mynotes 301
+/mynotes/linux/* /mynotes 301
+/mynotes/docker /mynotes 301
+/mynotes/docker/* /mynotes 301
+/mynotes/git /mynotes 301
+/mynotes/git/* /mynotes 301
+/mynotes/kubernetes /mynotes 301
+/mynotes/kubernetes/* /mynotes 301
+/mynotes/openshift /mynotes 301
+/mynotes/openshift/* /mynotes 301
+/mynotes/network /mynotes 301
+/mynotes/network/* /mynotes 301
+/mynotes/uv /mynotes 301
+/mynotes/uv/* /mynotes 301
+/mynotes/miniconda /mynotes 301
+/mynotes/miniconda/* /mynotes 301
